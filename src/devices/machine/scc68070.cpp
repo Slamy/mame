@@ -36,7 +36,7 @@ TODO:
 #define LOG_MORE_UART   (1U << 9)
 #define LOG_ALL         (LOG_I2C | LOG_UART | LOG_TIMERS | LOG_DMA | LOG_MMU | LOG_IRQS | LOG_UNKNOWN)
 
-#define VERBOSE         (0)
+#define VERBOSE         (LOG_ALL)
 
 #include "logmacro.h"
 

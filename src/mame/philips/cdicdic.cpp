@@ -38,7 +38,7 @@ TODO:
 #define LOG_RAM         (1U << 9)
 #define LOG_ALL         (LOG_DECODES | LOG_SAMPLES | LOG_COMMANDS | LOG_SECTORS | LOG_IRQS | LOG_READS | LOG_WRITES | LOG_UNKNOWNS | LOG_RAM)
 
-#define VERBOSE         (0)
+#define VERBOSE         (LOG_ALL)
 #include "logmacro.h"
 
 // device type definition

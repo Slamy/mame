@@ -58,6 +58,8 @@ public:
 	auto i2c_sda_w() { return m_i2c_sdaw_callback.bind(); }
 	auto i2c_sda_r() { return m_i2c_sdar_callback.bind(); }
 
+uint16_t uart_loopback_enable();
+
 	void in2_w(int state);
 	void in4_w(int state);
 	void in5_w(int state);
