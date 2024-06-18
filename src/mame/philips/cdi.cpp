@@ -244,23 +244,11 @@ uint16_t cdi_state::main_rom_r(offs_t offset)
 
 uint16_t cdi_state::bus_error_r(offs_t offset)
 {
-	if(!machine().side_effects_disabled())
-	{
-		m_maincpu->set_buserror_details(offset*2, true, m_maincpu->get_fc());
-		m_maincpu->set_input_line(M68K_LINE_BUSERROR, ASSERT_LINE);
-		m_maincpu->set_input_line(M68K_LINE_BUSERROR, CLEAR_LINE);
-	}
 	return 0xff;
 }
 
 void cdi_state::bus_error_w(offs_t offset, uint16_t data)
 {
-	if(!machine().side_effects_disabled())
-	{
-		m_maincpu->set_buserror_details(offset*2, false, m_maincpu->get_fc());
-		m_maincpu->set_input_line(M68K_LINE_BUSERROR, ASSERT_LINE);
-		m_maincpu->set_input_line(M68K_LINE_BUSERROR, CLEAR_LINE);
-	}
 }
 
 

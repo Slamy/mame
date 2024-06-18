@@ -17,6 +17,8 @@
 
 #pragma once
 
+
+
 #if defined(__sun__) && defined(__svr4__)
 #undef REG_SP
 #undef REG_PC
@@ -975,12 +977,15 @@ inline void m68ki_jump(u32 new_pc)
 	m_pc = new_pc;
 }
 
+
 inline void m68ki_jump_vector(u32 vector)
 {
 	m_pc = (vector<<2) + m_vbr;
 	m_pc = m68ki_read_data_32(m_pc);
 
 	printf("m68ki_jump_vector %x %x\n",vector,m_pc);
+	pcanalysis=80;
+
 }
 
 

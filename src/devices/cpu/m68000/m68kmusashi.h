@@ -5,6 +5,9 @@
 
 #pragma once
 
+extern int pcanalysis;
+
+
 #include "m68kcommon.h"
 
 #include "softfloat3/source/include/softfloat.h"
