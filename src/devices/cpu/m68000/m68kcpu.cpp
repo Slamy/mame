@@ -779,7 +779,7 @@ void m68000_musashi_device::m68k_cause_bus_error()
 	else if (CPU_TYPE_IS_070())
 	{
 		/* only the 68070 throws this unique type-1111 frame */
-		m68ki_stack_frame_1111(m_ppc, sr, EXCEPTION_BUS_ERROR, m_mmu_tmp_buserror_address);
+		//m68ki_stack_frame_1111(m_ppc, sr, EXCEPTION_BUS_ERROR, m_mmu_tmp_buserror_address);
 	}
 	else if (m_mmu_tmp_buserror_address == m_ppc)
 	{
@@ -897,7 +897,7 @@ void m68000_musashi_device::execute_run()
 			debugger_instruction_hook(m_pc);
 			if (pcanalysis-- > 0)
 			{
-				printf("%x\n",m_pc);
+				//printf("%x\n",m_pc);
 			}
 
 			try
