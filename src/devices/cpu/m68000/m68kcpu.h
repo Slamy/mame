@@ -980,10 +980,11 @@ inline void m68ki_jump(u32 new_pc)
 
 inline void m68ki_jump_vector(u32 vector)
 {
+	u32 oldpc=m_pc;
 	m_pc = (vector<<2) + m_vbr;
 	m_pc = m68ki_read_data_32(m_pc);
 
-	printf("m68ki_jump_vector %x %x\n",vector,m_pc);
+	printf("m68ki_jump_vector %x -> %x %x\n",oldpc,vector,m_pc);
 	pcanalysis=80;
 
 }
