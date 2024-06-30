@@ -97,10 +97,10 @@ void cdi_state::cdimono1_mem(address_map &map)
 	map(0x320000, 0x323fff).rw("mk48t08", FUNC(timekeeper_device::read), FUNC(timekeeper_device::write)).umask16(0xff00);    /* nvram (only low bytes used) */
 	map(0x400000, 0x47ffff).r(FUNC(cdi_state::main_rom_r));
 	map(0x4fffe0, 0x4fffff).m(m_mcd212, FUNC(mcd212_device::map));
-	map(0x500000, 0x57ffff).ram();
-	map(0xd00000, 0xdfffff).ram(); // DVC RAM block 1
-	map(0xe00000, 0xe7ffff).rw(FUNC(cdi_state::dvc_r), FUNC(cdi_state::dvc_w));
-	map(0xe80000, 0xefffff).ram(); // DVC RAM block 2
+	map(0x500000, 0x57ffff).noprw();
+	map(0xd00000, 0xdfffff).noprw(); // DVC RAM block 1
+	map(0xe00000, 0xe7ffff).noprw();
+	map(0xe80000, 0xefffff).noprw(); // DVC RAM block 2
 }
 
 void cdi_state::cdimono2_mem(address_map &map)
@@ -221,12 +221,22 @@ template<int Channel>
 uint16_t cdi_state::plane_r(offs_t offset, uint16_t mem_mask)
 {
 	m_maincpu->eat_cycles(m_mcd212->ram_dtack_cycle_count<Channel>());
+	if (Channel)
+		printf("Read DRAM 2 %06x %04x\n",offset<<1,m_plane_ram[Channel][offset]);
+	else
+		printf("Read DRAM %06x %04x\n",offset<<1,m_plane_ram[Channel][offset]);
+
 	return m_plane_ram[Channel][offset];
 }
 
 template<int Channel>
 void cdi_state::plane_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
+	if (Channel)
+		printf("Write DRAM 2 %06x %04x\n",offset<<1,data);
+	else
+		printf("Write DRAM %06x %04x\n",offset<<1,data);
+
 	m_maincpu->eat_cycles(m_mcd212->ram_dtack_cycle_count<Channel>());
 	COMBINE_DATA(&m_plane_ram[Channel][offset]);
 }
@@ -246,9 +256,12 @@ uint16_t cdi_state::bus_error_r(offs_t offset)
 {
 	if(!machine().side_effects_disabled())
 	{
+		if (offset&1)
+		{
 		m_maincpu->set_buserror_details(offset*2, true, m_maincpu->get_fc());
 		m_maincpu->set_input_line(M68K_LINE_BUSERROR, ASSERT_LINE);
 		m_maincpu->set_input_line(M68K_LINE_BUSERROR, CLEAR_LINE);
+		}
 	}
 	return 0xff;
 }
@@ -257,9 +270,12 @@ void cdi_state::bus_error_w(offs_t offset, uint16_t data)
 {
 	if(!machine().side_effects_disabled())
 	{
+		if (offset&1)
+		{
 		m_maincpu->set_buserror_details(offset*2, false, m_maincpu->get_fc());
 		m_maincpu->set_input_line(M68K_LINE_BUSERROR, ASSERT_LINE);
 		m_maincpu->set_input_line(M68K_LINE_BUSERROR, CLEAR_LINE);
+		}
 	}
 }
 

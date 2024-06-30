@@ -1254,25 +1254,25 @@ inline void m68ki_stack_frame_1000(u32 pc, u32 sr, u32 vector, u32 fault_address
 inline void m68ki_stack_frame_1111(u32 pc, u32 sr, u32 vector, u32 fault_address)
 {
 	/* INTERNAL INFORMATION */
-	m68ki_fake_push_16();
+	m68ki_push_16(0);
 
 	/* INSTRUCTION INPUT BUFFER */
 	m68ki_push_16(0);
 
 	/* INSTRUCTION REGISTER */
-	m68ki_push_16(m_ir);
+	m68ki_push_16(0);
 
 	/* DATA INPUT BUFFER */
 	m68ki_push_32(0);
 
 	/* FAULT ADDRESS */
-	m68ki_push_32(fault_address);
+	m68ki_push_32(0);
 
 	/* DATA OUTPUT BUFFER */
 	m68ki_push_32(0);
 
 	/* INTERNAL INFORMATION */
-	m68ki_fake_push_32();
+	m68ki_push_32(0);
 
 	/* CURRENT MOVE MULTIPLE MASK */
 	m68ki_push_16(0);
@@ -1284,7 +1284,7 @@ inline void m68ki_stack_frame_1111(u32 pc, u32 sr, u32 vector, u32 fault_address
 	m68ki_push_16(0xf000 | (vector<<2));
 
 	/* PROGRAM COUNTER */
-	m68ki_push_32(pc);
+	m68ki_push_32(pc-2);
 
 	/* STATUS REGISTER */
 	m68ki_push_16(sr);

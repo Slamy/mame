@@ -897,9 +897,16 @@ void m68000_musashi_device::execute_run()
 			debugger_instruction_hook(m_pc);
 			if (pcanalysis-- > 0)
 			{
-				printf("%x\n",m_pc);
+				// printf("%x\n",m_pc);
 			}
+			/*
+			printf("%x",m_pc);
 
+			for (int i=0;i <16;i++)
+				printf(" %x",m_dar[i]);
+
+			printf("\n");
+*/
 			try
 			{
 			if (!m_instruction_restart)
@@ -1362,7 +1369,7 @@ void m68000_musashi_device::init16(address_space &space, address_space &ospace)
 	m_read32  = [this](offs_t address) -> u32    { return m_program16.read_dword(address); };
 	m_write8  = [this](offs_t address, u8 data)  { m_program16.write_word(address & ~1, data | (data << 8), address & 1 ? 0x00ff : 0xff00); };
 	m_write16 = [this](offs_t address, u16 data) { m_program16.write_word(address, data); };
-	m_write32 = [this](offs_t address, u32 data) { m_program16.write_dword(address, data); };
+	m_write32 = [this](offs_t address, u32 data) { m_program16.write_word(address, data>>16); m_program16.write_word(address+2, data&0xffff); };
 }
 
 /****************************************************************************
