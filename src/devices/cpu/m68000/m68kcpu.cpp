@@ -1369,7 +1369,7 @@ void m68000_musashi_device::init16(address_space &space, address_space &ospace)
 	m_read32  = [this](offs_t address) -> u32    { return m_program16.read_dword(address); };
 	m_write8  = [this](offs_t address, u8 data)  { m_program16.write_word(address & ~1, data | (data << 8), address & 1 ? 0x00ff : 0xff00); };
 	m_write16 = [this](offs_t address, u16 data) { m_program16.write_word(address, data); };
-	m_write32 = [this](offs_t address, u32 data) { m_program16.write_word(address, data>>16); m_program16.write_word(address+2, data&0xffff); };
+	m_write32 = [this](offs_t address, u32 data) { m_program16.write_dword(address, data); };
 }
 
 /****************************************************************************
@@ -2270,6 +2270,8 @@ void m68000_musashi_device::m68ki_exception_interrupt(u32 int_level)
 		sr |= 0x2000; /* Same as SR in master stack frame except S is forced high */
 		m68ki_stack_frame_0001(m_pc, sr, vector);
 	}
+
+	printf("m68ki_exception_interrupt %x : %x -> %x\n",int_level,m_pc,new_pc);
 
 	m68ki_jump(new_pc);
 

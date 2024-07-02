@@ -501,6 +501,8 @@ void scc68070_device::update_ipl()
 			set_input_line(m_ipl, CLEAR_LINE);
 		if (new_ipl != 0)
 			set_input_line(new_ipl, ASSERT_LINE);
+		
+		printf("IRQ %d %d %d %d %d %d\n",int1_level, int2_level, timer_level, external_level, uart_rx_level, uart_tx_level);
 		m_ipl = new_ipl;
 	}
 }

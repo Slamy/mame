@@ -221,22 +221,12 @@ template<int Channel>
 uint16_t cdi_state::plane_r(offs_t offset, uint16_t mem_mask)
 {
 	m_maincpu->eat_cycles(m_mcd212->ram_dtack_cycle_count<Channel>());
-	if (Channel)
-		printf("Read DRAM 2 %06x %04x\n",offset<<1,m_plane_ram[Channel][offset]);
-	else
-		printf("Read DRAM %06x %04x\n",offset<<1,m_plane_ram[Channel][offset]);
-
 	return m_plane_ram[Channel][offset];
 }
 
 template<int Channel>
 void cdi_state::plane_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
-	if (Channel)
-		printf("Write DRAM 2 %06x %04x\n",offset<<1,data);
-	else
-		printf("Write DRAM %06x %04x\n",offset<<1,data);
-
 	m_maincpu->eat_cycles(m_mcd212->ram_dtack_cycle_count<Channel>());
 	COMBINE_DATA(&m_plane_ram[Channel][offset]);
 }
