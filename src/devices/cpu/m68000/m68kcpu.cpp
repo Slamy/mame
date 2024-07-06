@@ -73,7 +73,7 @@ const u32 m68000_musashi_device::m68ki_shift_32_table[65] =
 	0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff
 };
 
-
+static bool print_instructions{false};
 /* Number of clock cycles to use for exception processing.
  * I used 4 for any vectors that are undocumented for processing times.
  */
@@ -899,14 +899,17 @@ void m68000_musashi_device::execute_run()
 			{
 				// printf("%x\n",m_pc);
 			}
-			/*
+			
+			if (print_instructions)
+			{
 			printf("%x",m_pc);
 
 			for (int i=0;i <16;i++)
 				printf(" %x",m_dar[i]);
 
 			printf("\n");
-*/
+			}
+
 			try
 			{
 			if (!m_instruction_restart)
@@ -2229,6 +2232,8 @@ void m68000_musashi_device::m68ki_exception_interrupt(u32 int_level)
 	if(m_stopped)
 		return;
 
+	printf("m68ki_exception_interrupt %d\n",int_level);
+
 	/* Inform the device than an interrupt is taken */
 	if(m_interrupt_mixer)
 		standard_irq_callback(int_level, m_pc);
@@ -2247,6 +2252,9 @@ void m68000_musashi_device::m68ki_exception_interrupt(u32 int_level)
 		vector = m_cpu_space->read_byte(0xfffffff1 | (int_level << 1));
 	else
 		vector = m_cpu_space->read_word(0xfffffff0 | (int_level << 1)) & 0xff;
+
+	printf("m68ki_exception_interrupt v %d\n",vector);
+
 
 	/* Start exception processing */
 	sr = m68ki_init_exception(vector);

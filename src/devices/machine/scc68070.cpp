@@ -36,7 +36,7 @@ TODO:
 #define LOG_MORE_UART   (1U << 9)
 #define LOG_ALL         (LOG_I2C | LOG_UART | LOG_TIMERS | LOG_DMA | LOG_MMU | LOG_IRQS | LOG_UNKNOWN)
 
-#define VERBOSE         (LOG_ALL)
+#define VERBOSE         (LOG_ALL | LOG_TIMERS_HF)
 
 #include "logmacro.h"
 
@@ -598,6 +598,7 @@ uint8_t scc68070_device::iack_r(offs_t offset)
 		}
 		else if (m_timer_int && offset == (m_picr1 & 7))
 		{
+			printf("iack m_timer_int false\n");
 			m_timer_int = false;
 			update_ipl();
 		}
@@ -797,6 +798,7 @@ void scc68070_device::picr1_w(uint8_t data)
 	case 0x08:
 		if (m_timer_int)
 		{
+			printf("picr1_w m_timer_int false\n");
 			m_timer_int = false;
 			update_ipl();
 		}
@@ -813,6 +815,7 @@ void scc68070_device::picr1_w(uint8_t data)
 	case 0x88:
 		if (m_timer_int || m_i2c_int)
 		{
+			printf("picr1_w m_timer_int false\n");
 			m_timer_int = false;
 			m_i2c_int = false;
 			update_ipl();
