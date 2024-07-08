@@ -36,7 +36,10 @@ TODO:
 #define LOG_CLUT            (1U << 9)
 #define LOG_ALL             (LOG_UNKNOWNS | LOG_REGISTERS | LOG_ICA | LOG_DCA | LOG_VSR | LOG_STATUS | LOG_MAIN_REG_READS | LOG_MAIN_REG_WRITES | LOG_CLUT)
 
-#define VERBOSE             (0)
+//#define VERBOSE             (LOG_MAIN_REG_READS | LOG_MAIN_REG_WRITES | LOG_ICA | LOG_DCA | LOG_REGISTERS | LOG_VSR)
+#define VERBOSE             (LOG_VSR)
+//#define VERBOSE             (0)
+
 #include "logmacro.h"
 
 // device type definition

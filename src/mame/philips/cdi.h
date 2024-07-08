@@ -39,7 +39,6 @@ public:
 	void cdimono2(machine_config &config);
 	void cdi910(machine_config &config);
 
-protected:
 	enum servo_portc_bit_t
 	{
 		INV_JUC_OUT = (1 << 2),

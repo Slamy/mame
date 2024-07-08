@@ -217,6 +217,8 @@ void quizard_state::machine_reset()
 *  Wait-State Handling     *
 ***************************/
 
+cdi_state *state{nullptr};
+
 template<int Channel>
 uint16_t cdi_state::plane_r(offs_t offset, uint16_t mem_mask)
 {
@@ -232,9 +234,19 @@ void cdi_state::plane_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 }
 
 uint16_t cdi_state::main_rom_r(offs_t offset)
-{
+{state=this;
 	m_maincpu->eat_cycles(m_mcd212->rom_dtack_cycle_count());
 	return m_main_rom[offset];
+}
+
+void storememory()
+{
+	FILE *f=fopen("video.mem","wb");
+	assert(f);
+	fwrite(state->m_plane_ram[0],1,1024*256*2,f);
+	fwrite(state->m_plane_ram[1],1,1024*256*2,f);
+	fclose(f);
+	exit(0);
 }
 
 
