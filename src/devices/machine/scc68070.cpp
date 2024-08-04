@@ -36,7 +36,7 @@ TODO:
 #define LOG_MORE_UART   (1U << 9)
 #define LOG_ALL         (LOG_I2C | LOG_UART | LOG_TIMERS | LOG_DMA | LOG_MMU | LOG_IRQS | LOG_UNKNOWN)
 
-#define VERBOSE         (LOG_ALL | LOG_TIMERS_HF)
+#define VERBOSE         (LOG_ALL)
 
 #include "logmacro.h"
 
@@ -480,11 +480,8 @@ void scc68070_device::reset_peripherals(int state)
 
 void scc68070_device::update_ipl()
 {
-	const uint8_t external_level = (m_nmi_line == ASSERT_LINE) ? 7
-		: (m_in5_line == ASSERT_LINE) ? 5
-		: (m_in4_line == ASSERT_LINE) ? 4
-		: (m_in2_line == ASSERT_LINE) ? 2 : 0;
-	const uint8_t int1_level = BIT(m_lir, 7) ? (m_lir >> 4) & 7 : 0;
+	const uint8_t external_level = 0;
+	const uint8_t int1_level = 0;
 	const uint8_t int2_level = BIT(m_lir, 3) ? m_lir & 7 : 0;
 	const uint8_t timer_level = m_timer_int ? m_picr1 & 7 : 0;
 	const uint8_t uart_rx_level = m_uart_rx_int ? (m_picr2 >> 4) & 7 : 0;
@@ -1831,9 +1828,7 @@ void scc68070_device::mmu_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 	}
 }
 
-#if ENABLE_UART_PRINTING
 uint16_t scc68070_device::uart_loopback_enable()
 {
 	return 0x1234;
 }
-#endif
