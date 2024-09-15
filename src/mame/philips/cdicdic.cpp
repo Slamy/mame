@@ -38,7 +38,7 @@ TODO:
 #define LOG_RAM         (1U << 9)
 #define LOG_ALL         (LOG_DECODES | LOG_SAMPLES | LOG_COMMANDS | LOG_SECTORS | LOG_IRQS | LOG_READS | LOG_WRITES | LOG_UNKNOWNS | LOG_RAM)
 
-#define VERBOSE         (0)
+#define VERBOSE         (LOG_ALL)
 #include "logmacro.h"
 
 // device type definition
@@ -1234,8 +1234,6 @@ uint16_t cdicdic_device::regs_r(offs_t offset, uint16_t mem_mask)
 		}
 
 		case 0x3ffa/2: // AUDCTL
-			if (!m_decoding_audio_map)
-				m_z_buffer ^= 0x0001;
 			LOGMASKED(LOG_READS, "%s: cdic_r: Z-Buffer Register Read: %04x & %04x\n", machine().describe_context(), m_z_buffer, mem_mask);
 			return m_z_buffer;
 
@@ -1312,18 +1310,39 @@ void cdicdic_device::regs_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 			uint16_t *ram = (uint16_t *)m_ram.get();
 			LOGMASKED(LOG_WRITES, "%s: cdic_w: DMA Control Register = %04x & %04x\n", machine().describe_context(), data, mem_mask);
 			LOGMASKED(LOG_WRITES, "%s: Memory address counter: %08x\n", machine().describe_context(), m_scc->dma().channel[0].memory_address_counter);
+
+			uint32_t start2 = m_scc->dma().channel[0].memory_address_counter;
+			if (start2 & 0x200000)
+			{
+				start2 = start2 - 0x200000 + 0x080000;
+			}
+			uint32_t end = start2 + count * 2;
+
+			printf("DMA from %x to %x\n",start2,end);
 			LOGMASKED(LOG_WRITES, "%s: Doing copy, transferring %04x bytes %s\n", machine().describe_context(), count * 2, (m_scc->dma().channel[0].operation_control & SCC68070_OCR_D) ? "to main RAM" : "to device RAM");
+
+			int printsinline=0;
 			for (uint32_t index = start / 2; index < (start / 2 + count); index++)
 			{
 				if (m_scc->dma().channel[0].operation_control & SCC68070_OCR_D)
 				{
+					printf("%04X",ram[device_index]);
+					printsinline++;
+					if (printsinline==8)
+					{
+						printsinline=0;
+						printf("\n");
+					}
 					m_memory_space->write_word(index * 2, ram[device_index++]);
+
 				}
 				else
 				{
 					ram[device_index++] = m_memory_space->read_word(index * 2);
 				}
 			}
+			printf("\n");
+
 			m_scc->dma().channel[0].memory_address_counter += m_scc->dma().channel[0].transfer_counter * 2;
 			break;
 		}

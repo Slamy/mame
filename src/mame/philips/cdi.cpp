@@ -97,10 +97,10 @@ void cdi_state::cdimono1_mem(address_map &map)
 	map(0x320000, 0x323fff).rw("mk48t08", FUNC(timekeeper_device::read), FUNC(timekeeper_device::write)).umask16(0xff00);    /* nvram (only low bytes used) */
 	map(0x400000, 0x47ffff).r(FUNC(cdi_state::main_rom_r));
 	map(0x4fffe0, 0x4fffff).m(m_mcd212, FUNC(mcd212_device::map));
-	map(0x500000, 0x57ffff).ram();
-	map(0xd00000, 0xdfffff).ram(); // DVC RAM block 1
+	map(0x500000, 0x57ffff).noprw();
+	map(0xd00000, 0xdfffff).noprw(); // DVC RAM block 1
 	map(0xe00000, 0xe7ffff).rw(FUNC(cdi_state::dvc_r), FUNC(cdi_state::dvc_w));
-	map(0xe80000, 0xefffff).ram(); // DVC RAM block 2
+	map(0xe80000, 0xefffff).noprw(); // DVC RAM block 2
 }
 
 void cdi_state::cdimono2_mem(address_map &map)
@@ -217,6 +217,8 @@ void quizard_state::machine_reset()
 *  Wait-State Handling     *
 ***************************/
 
+cdi_state *state{nullptr};
+
 template<int Channel>
 uint16_t cdi_state::plane_r(offs_t offset, uint16_t mem_mask)
 {
@@ -227,14 +229,34 @@ uint16_t cdi_state::plane_r(offs_t offset, uint16_t mem_mask)
 template<int Channel>
 void cdi_state::plane_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
+	if (Channel)
+	{
+	    offs_t offset2 =(offset<<1)+0x8000;
+	    if (offset2 >0xf7bfb && offset2 < 0xf7c13)
+		printf("Write DRAM %06x %04x\n",offset2,data);
+	}
+	else{
+		//printf("Write DRAM %06x %04x\n",offset<<1,data);
+		}
+
 	m_maincpu->eat_cycles(m_mcd212->ram_dtack_cycle_count<Channel>());
 	COMBINE_DATA(&m_plane_ram[Channel][offset]);
 }
 
 uint16_t cdi_state::main_rom_r(offs_t offset)
-{
+{state=this;
 	m_maincpu->eat_cycles(m_mcd212->rom_dtack_cycle_count());
 	return m_main_rom[offset];
+}
+
+void storememory()
+{
+	FILE *f=fopen("video.mem","wb");
+	assert(f);
+	fwrite(state->m_plane_ram[0],1,1024*256*2,f);
+	fwrite(state->m_plane_ram[1],1,1024*256*2,f);
+	fclose(f);
+	exit(0);
 }
 
 
