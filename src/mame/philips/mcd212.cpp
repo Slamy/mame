@@ -37,8 +37,8 @@ TODO:
 #define LOG_ALL             (LOG_UNKNOWNS | LOG_REGISTERS | LOG_ICA | LOG_DCA | LOG_VSR | LOG_STATUS | LOG_MAIN_REG_READS | LOG_MAIN_REG_WRITES | LOG_CLUT)
 
 //#define VERBOSE             (LOG_MAIN_REG_READS | LOG_MAIN_REG_WRITES | LOG_ICA | LOG_DCA | LOG_REGISTERS | LOG_VSR)
-#define VERBOSE             (LOG_ALL)
-//#define VERBOSE             (0)
+//#define VERBOSE             (LOG_MAIN_REG_WRITES | LOG_ICA)
+#define VERBOSE             (LOG_REGISTERS | LOG_ICA | LOG_MAIN_REG_WRITES |LOG_DCA)
 
 #include "logmacro.h"
 
@@ -427,8 +427,8 @@ int mcd212_device::get_border_width()
 		width = 24;
 	return width;
 }
-static int cnt=0;
 void storememory();
+extern int irq2_counter;
 
 template <int Channel>
 void mcd212_device::process_ica()
@@ -437,11 +437,14 @@ void mcd212_device::process_ica()
 	uint32_t addr = 0x200;
 	uint32_t cmd = 0;
 
-	cnt++;
-	printf("%d\n",cnt);
-	if (cnt==2000)
+	if (irq2_counter>100)
+	{
+		for(int i =0; i < 256;i++)
+			printf("0x%x,\n",m_clut[i]);
 		storememory();
-	
+	}
+
+		
 	const int max_to_process = m_ica_height * 120;
 	for (int i = 0; i < max_to_process; i++)
 	{

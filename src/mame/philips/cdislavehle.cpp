@@ -37,10 +37,15 @@ DEFINE_DEVICE_TYPE(CDI_SLAVE_HLE, cdislave_hle_device, "cdislavehle", "CD-i Mono
 //**************************************************************************
 //  MEMBER FUNCTIONS
 //**************************************************************************
+void storememory();
+
+int irq2_counter=0;
 
 TIMER_CALLBACK_MEMBER( cdislave_hle_device::trigger_readback_int )
 {
 	LOGMASKED(LOG_IRQS, "Asserting IRQ2\n");
+	irq2_counter++;
+
 	m_int_callback(ASSERT_LINE);
 	m_interrupt_timer->adjust(attotime::never);
 }
