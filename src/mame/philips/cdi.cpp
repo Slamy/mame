@@ -241,12 +241,15 @@ uint16_t cdi_state::main_rom_r(offs_t offset)
 
 void storememory()
 {
-	FILE *f=fopen("video.mem","wb");
+	char path[100];
+	static int index=0;
+	sprintf(path,"ramdump%d.bin",index);
+	index++;
+	FILE *f=fopen(path,"wb");
 	assert(f);
 	fwrite(state->m_plane_ram[0],1,1024*256*2,f);
 	fwrite(state->m_plane_ram[1],1,1024*256*2,f);
 	fclose(f);
-	exit(0);
 }
 
 

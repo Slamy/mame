@@ -38,7 +38,8 @@ TODO:
 
 //#define VERBOSE             (LOG_MAIN_REG_READS | LOG_MAIN_REG_WRITES | LOG_ICA | LOG_DCA | LOG_REGISTERS | LOG_VSR)
 //#define VERBOSE             (LOG_MAIN_REG_WRITES | LOG_ICA)
-#define VERBOSE             (LOG_REGISTERS | LOG_ICA | LOG_MAIN_REG_WRITES |LOG_DCA)
+//#define VERBOSE             (LOG_REGISTERS | LOG_ICA | LOG_MAIN_REG_WRITES |LOG_DCA)
+#define VERBOSE             (LOG_MAIN_REG_WRITES)
 
 #include "logmacro.h"
 
@@ -442,6 +443,7 @@ void mcd212_device::process_ica()
 		for(int i =0; i < 256;i++)
 			printf("0x%x,\n",m_clut[i]);
 		storememory();
+		irq2_counter=0;
 	}
 
 		
@@ -1098,6 +1100,8 @@ void mcd212_device::csr1_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	LOGMASKED(LOG_MAIN_REG_WRITES, "%s: Control/Status Register 1 Write: %04x & %08x\n", machine().describe_context(), data, mem_mask);
 	COMBINE_DATA(&m_csrw[0]);
+
+	printf("CSR %x\n",*m_csrw);
 }
 
 uint16_t mcd212_device::dcr1_r(offs_t offset, uint16_t mem_mask)
@@ -1269,12 +1273,16 @@ uint32_t mcd212_device::screen_update(screen_device &screen, bitmap_rgb32 &bitma
 		bool draw_line = true;
 		if (!BIT(m_dcr[0], DCR_FD_BIT) && BIT(m_csrw[0], CSR1W_ST_BIT))
 		{
+			printf("Yep %x %x\n",BIT(m_dcr[0], DCR_FD_BIT),BIT(m_csrw[0], CSR1W_ST_BIT));
 			// If PAL and 'Standard' bit set, insert a 20-line border on the top/bottom
 			if ((scanline - m_ica_height < 20) || (scanline >= (m_total_height - 20)))
 			{
 				std::fill_n(out, 768, 0xff101010);
 				draw_line = false;
 			}
+		}
+		else{
+			printf("Nope %x %x\n",BIT(m_dcr[0], DCR_FD_BIT),BIT(m_csrw[0], CSR1W_ST_BIT));
 		}
 
 		m_csrr[0] |= CSR1R_DA;
