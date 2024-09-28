@@ -258,6 +258,7 @@ const uint8_t cdicdic_device::s_sector_scramble[2448] =
 
 void cdicdic_device::decode_xa_mono(int16_t *cdic_xa_last, const uint8_t *xa, int16_t *dp)
 {
+	printf("%s\n", __func__);
 	int16_t l0 = cdic_xa_last[0];
 	int16_t l1 = cdic_xa_last[1];
 
@@ -307,6 +308,7 @@ void cdicdic_device::decode_xa_mono(int16_t *cdic_xa_last, const uint8_t *xa, in
 
 void cdicdic_device::decode_xa_mono8(int16_t *cdic_xa_last, const unsigned char *xa, signed short *dp)
 {
+	printf("%s\n", __func__);
 	int16_t l0 = cdic_xa_last[0];
 	int16_t l1 = cdic_xa_last[1];
 
@@ -340,6 +342,7 @@ void cdicdic_device::decode_xa_mono8(int16_t *cdic_xa_last, const unsigned char 
 
 void cdicdic_device::decode_xa_stereo(int16_t *cdic_xa_last, const uint8_t *xa, int16_t *dp)
 {
+	printf("%s\n", __func__);
 	int16_t l0 = cdic_xa_last[0];
 	int16_t l1 = cdic_xa_last[1];
 	int16_t l2 = cdic_xa_last[2];
@@ -391,6 +394,7 @@ void cdicdic_device::decode_xa_stereo(int16_t *cdic_xa_last, const uint8_t *xa, 
 
 void cdicdic_device::decode_xa_stereo8(int16_t *cdic_xa_last, const uint8_t *xa, int16_t *dp)
 {
+	printf("%s\n", __func__);
 	int16_t l0 = cdic_xa_last[0];
 	int16_t l1 = cdic_xa_last[1];
 	int16_t l2 = cdic_xa_last[2];
@@ -441,6 +445,7 @@ void cdicdic_device::decode_xa_stereo8(int16_t *cdic_xa_last, const uint8_t *xa,
 
 void cdicdic_device::decode_8bit_xa_unit(int channel, uint8_t param, const uint8_t *data, int16_t *out_buffer)
 {
+	printf("%s\n", __func__);
 	int gain_shift = 8 - (param & 0xf);
 
 	const int16_t *filter = s_xa_filter_coef[(param >> 4) & 3];
@@ -472,6 +477,7 @@ void cdicdic_device::decode_8bit_xa_unit(int channel, uint8_t param, const uint8
 
 void cdicdic_device::decode_4bit_xa_unit(int channel, uint8_t param, const uint8_t *data, uint8_t shift, int16_t *out_buffer)
 {
+	printf("%s\n", __func__);
 	int gain_shift = 12 - (param & 0xf);
 
 	const int16_t *filter = s_xa_filter_coef[(param >> 4) & 3];
@@ -516,6 +522,7 @@ void cdicdic_device::play_raw_group(const uint8_t *data)
 
 void cdicdic_device::play_xa_group(const uint8_t coding, const uint8_t *data)
 {
+	printf("%s\n", __func__);
 	static const uint16_t s_4bit_header_offsets[8] = { 0, 1, 2, 3, 8, 9, 10, 11 };
 	static const uint16_t s_8bit_header_offsets[4] = { 0, 1, 2, 3 };
 	static const uint16_t s_4bit_data_offsets[8] = { 16, 16, 17, 17, 18, 18, 19, 19 };
@@ -563,6 +570,7 @@ void cdicdic_device::play_xa_group(const uint8_t coding, const uint8_t *data)
 
 void cdicdic_device::play_cdda_sector(const uint8_t *data)
 {
+	printf("%s\n", __func__);
 	m_dmadac[0]->set_frequency(44100);
 	m_dmadac[1]->set_frequency(44100);
 	m_dmadac[0]->set_volume(0x100);
@@ -635,6 +643,7 @@ void cdicdic_device::play_audio_sector(const uint8_t coding, const uint8_t *data
 	m_dmadac[0]->set_volume(0x100);
 	m_dmadac[1]->set_volume(0x100);
 
+
 	if (bits == 16 && channels == 2)
 	{
 		for (uint16_t i = 0; i < SECTOR_AUDIO_SIZE; i += 112, data += 112)
@@ -647,6 +656,21 @@ void cdicdic_device::play_audio_sector(const uint8_t coding, const uint8_t *data
 		for (uint16_t i = 0; i < SECTOR_AUDIO_SIZE; i += 128, data += 128)
 		{
 			play_xa_group(coding, data);
+
+			int printsinline=0;
+
+			for (int i=0;i<128;i++)
+			{
+				printf("%04X",data[i]);
+				printsinline++;
+				if (printsinline==8)
+				{
+					printsinline=0;
+					printf("\n");
+				}
+			}
+			printf("\n");
+
 		}
 	}
 }
@@ -808,6 +832,7 @@ bool cdicdic_device::is_mode2_sector_selected(const uint8_t *buffer)
 		LOGMASKED(LOG_SECTORS, "Mode 2 sector is not selected due to being a message sector (%02x)\n", buffer[SECTOR_SUBMODE2]);
 		return false;
 	}
+	//template <typename T, typename U> constexpr T BIT(T x, U n) noexcept { return (x >> n) & T(1); }
 
 	// Select based on the specified channel mask.
 	const bool channel_selected = (bool)BIT(m_channel, buffer[SECTOR_CHAN2]);
@@ -1310,39 +1335,18 @@ void cdicdic_device::regs_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 			uint16_t *ram = (uint16_t *)m_ram.get();
 			LOGMASKED(LOG_WRITES, "%s: cdic_w: DMA Control Register = %04x & %04x\n", machine().describe_context(), data, mem_mask);
 			LOGMASKED(LOG_WRITES, "%s: Memory address counter: %08x\n", machine().describe_context(), m_scc->dma().channel[0].memory_address_counter);
-
-			uint32_t start2 = m_scc->dma().channel[0].memory_address_counter;
-			if (start2 & 0x200000)
-			{
-				start2 = start2 - 0x200000 + 0x080000;
-			}
-			uint32_t end = start2 + count * 2;
-
-			printf("DMA from %x to %x\n",start2,end);
 			LOGMASKED(LOG_WRITES, "%s: Doing copy, transferring %04x bytes %s\n", machine().describe_context(), count * 2, (m_scc->dma().channel[0].operation_control & SCC68070_OCR_D) ? "to main RAM" : "to device RAM");
-
-			int printsinline=0;
 			for (uint32_t index = start / 2; index < (start / 2 + count); index++)
 			{
 				if (m_scc->dma().channel[0].operation_control & SCC68070_OCR_D)
 				{
-					printf("%04X",ram[device_index]);
-					printsinline++;
-					if (printsinline==8)
-					{
-						printsinline=0;
-						printf("\n");
-					}
 					m_memory_space->write_word(index * 2, ram[device_index++]);
-
 				}
 				else
 				{
 					ram[device_index++] = m_memory_space->read_word(index * 2);
 				}
 			}
-			printf("\n");
-
 			m_scc->dma().channel[0].memory_address_counter += m_scc->dma().channel[0].transfer_counter * 2;
 			break;
 		}

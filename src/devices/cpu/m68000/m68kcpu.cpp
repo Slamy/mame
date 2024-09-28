@@ -73,7 +73,7 @@ const u32 m68000_musashi_device::m68ki_shift_32_table[65] =
 	0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff
 };
 
-static bool print_instructions{false};
+
 /* Number of clock cycles to use for exception processing.
  * I used 4 for any vectors that are undocumented for processing times.
  */
@@ -831,113 +831,8 @@ bool m68000_musashi_device::memory_translate(int spacenum, int intention, offs_t
 
 
 
-int pcanalysis=0;
 
 
-const char* m68000_musashi_device::systemCallNameToString(const SystemCallType call)
-{
-    switch(call)
-    {
-    case SystemCallType::F_Link:    return "F$Link";
-    case SystemCallType::F_Load:    return "F$Load";
-    case SystemCallType::F_UnLink:  return "F$UnLink";
-    case SystemCallType::F_Fork:    return "F$Fork";
-    case SystemCallType::F_Wait:    return "F$Wait";
-    case SystemCallType::F_Chain:   return "F$Chain";
-    case SystemCallType::F_Exit:    return "F$Exit";
-    case SystemCallType::F_Mem:     return "F$Mem";
-    case SystemCallType::F_Send:    return "F$Send";
-    case SystemCallType::F_Icpt:    return "F$Icpt";
-    case SystemCallType::F_Sleep:   return "F$Sleep";
-    case SystemCallType::F_SSpd:    return "F$SSpd";
-    case SystemCallType::F_ID:      return "F$ID";
-    case SystemCallType::F_SPrior:  return "F$SPrior";
-    case SystemCallType::F_STrap:   return "F$STrap";
-    case SystemCallType::F_PErr:    return "F$PErr";
-    case SystemCallType::F_PrsNam:  return "F$PrsNam";
-    case SystemCallType::F_CmpNam:  return "F$CmpNam";
-    case SystemCallType::F_SchBit:  return "F$SchBit";
-    case SystemCallType::F_AllBit:  return "F$AllBit";
-    case SystemCallType::F_DelBit:  return "F$DelBit";
-    case SystemCallType::F_Time:    return "F$Time";
-    case SystemCallType::F_STime:   return "F$STime";
-    case SystemCallType::F_CRC:     return "F$CRC";
-    case SystemCallType::F_GPrDsc:  return "F$GPrDsc";
-    case SystemCallType::F_GBlkMp:  return "F$GBlkMp";
-    case SystemCallType::F_GModDr:  return "F$GModDr";
-    case SystemCallType::F_CpyMem:  return "F$CpyMem";
-    case SystemCallType::F_SUser:   return "F$SUser";
-    case SystemCallType::F_UnLoad:  return "F$UnLoad";
-    case SystemCallType::F_RTE:     return "F$RTE";
-    case SystemCallType::F_GPrDBT:  return "F$GPrDBT";
-    case SystemCallType::F_Julian:  return "F$Julian";
-    case SystemCallType::F_TLink:   return "F$TLink";
-    case SystemCallType::F_DFork:   return "F$DFork";
-    case SystemCallType::F_DExec:   return "F$DExec";
-    case SystemCallType::F_DExit:   return "F$DExit";
-    case SystemCallType::F_DatMod:  return "F$DatMod";
-    case SystemCallType::F_SetCRC:  return "F$SetCRC";
-    case SystemCallType::F_SetSys:  return "F$SetSys";
-    case SystemCallType::F_SRqMem:  return "F$SRqMem";
-    case SystemCallType::F_SRtMem:  return "F$SRtMem";
-    case SystemCallType::F_IRQ:     return "F$IRQ";
-    case SystemCallType::F_IOQu:    return "F$IOQu";
-    case SystemCallType::F_AProc:   return "F$AProc";
-    case SystemCallType::F_NProc:   return "F$NProc";
-    case SystemCallType::F_VModul:  return "F$VModul";
-    case SystemCallType::F_FindPD:  return "F$FindPD";
-    case SystemCallType::F_AllPD:   return "F$AllPD";
-    case SystemCallType::F_RetPD:   return "F$RetPD";
-    case SystemCallType::F_SSvc:    return "F$SSvc";
-    case SystemCallType::F_IODel:   return "F$IODel";
-    case SystemCallType::F_GProcP:  return "F$GProcP";
-    case SystemCallType::F_Move:    return "F$Move";
-    case SystemCallType::F_AllRAM:  return "F$AllRAM";
-    case SystemCallType::F_Permit:  return "F$Permit";
-    case SystemCallType::F_Protect: return "F$Protect";
-    case SystemCallType::F_AllTsk:  return "F$AllTsk";
-    case SystemCallType::F_DelTsk:  return "F$DelTsk";
-    case SystemCallType::F_AllPrc:  return "F$AllPrc";
-    case SystemCallType::F_DelPrc:  return "F$DelPrc";
-    case SystemCallType::F_FModul:  return "F$FModul";
-    case SystemCallType::F_SysDbg:  return "F$SysDbg";
-    case SystemCallType::F_Event:   return "F$Event";
-    case SystemCallType::F_Gregor:  return "F$Gregor";
-    case SystemCallType::F_SysID:   return "F$SysID";
-    case SystemCallType::F_Alarm:   return "F$Alarm";
-    case SystemCallType::F_SigMask: return "F$SigMask";
-    case SystemCallType::F_ChkMem:  return "F$ChkMem";
-    case SystemCallType::F_UAcct:   return "F$UAcct";
-    case SystemCallType::F_CCtl:    return "F$CCtl";
-    case SystemCallType::F_GSPUMp:  return "F$GSPUMp";
-    case SystemCallType::F_SRqCMem: return "F$SRqCMem";
-    case SystemCallType::F_POSK:    return "F$POSK";
-    case SystemCallType::F_Panic:   return "F$Panic";
-    case SystemCallType::F_MBuf:    return "F$MBuf";
-    case SystemCallType::F_Trans:   return "F$Trans";
-    case SystemCallType::I_Attach:  return "I$Attach";
-    case SystemCallType::I_Detach:  return "I$Detach";
-    case SystemCallType::I_Dup:     return "I$Dup";
-    case SystemCallType::I_Create:  return "I$Create";
-    case SystemCallType::I_Open:    return "I$Open";
-    case SystemCallType::I_MakDir:  return "I$MakDir";
-    case SystemCallType::I_ChgDir:  return "I$ChgDir";
-    case SystemCallType::I_Delete:  return "I$Delete";
-    case SystemCallType::I_Seek:    return "I$Seek";
-    case SystemCallType::I_Read:    return "I$Read";
-    case SystemCallType::I_Write:   return "I$Write";
-    case SystemCallType::I_ReadLn:  return "I$ReadLn";
-    case SystemCallType::I_WritLn:  return "I$WritLn";
-    case SystemCallType::I_GetStt:  return "I$GetStt";
-    case SystemCallType::I_SetStt:  return "I$SetStt";
-    case SystemCallType::I_Close:   return "I$Close";
-    default: return "Unknown system call ";
-    }
-}
-
-
-
-void storememory();
 
 
 void m68000_musashi_device::execute_run()
@@ -1001,28 +896,8 @@ void m68000_musashi_device::execute_run()
 			/* Record previous program counter */
 			m_ppc = m_pc;
 
-            if (m_pc == 0x4095ea){
-            	 storememory();
-
-            }
-				//print_instructions=1;
-
-			/* Call storememory hook to peek at CPU */
+			/* Call external hook to peek at CPU */
 			debugger_instruction_hook(m_pc);
-
-						if (m_pc == pc_after_syscall){
-				printf("Return from Syscall %d\n",m_c_flag);
-			}
-
-			if (print_instructions)
-			{
-				printf("%x",m_pc);
-
-				for (int i=0;i <16;i++)
-					printf(" %x",m_dar[i]);
-
-				printf("\n");
-			}
 
 			try
 			{
