@@ -36,11 +36,7 @@ TODO:
 #define LOG_CLUT            (1U << 9)
 #define LOG_ALL             (LOG_UNKNOWNS | LOG_REGISTERS | LOG_ICA | LOG_DCA | LOG_VSR | LOG_STATUS | LOG_MAIN_REG_READS | LOG_MAIN_REG_WRITES | LOG_CLUT)
 
-//#define VERBOSE             (LOG_MAIN_REG_READS | LOG_MAIN_REG_WRITES | LOG_ICA | LOG_DCA | LOG_REGISTERS | LOG_VSR)
-//#define VERBOSE             (LOG_MAIN_REG_WRITES | LOG_ICA)
-//#define VERBOSE             (LOG_REGISTERS | LOG_ICA | LOG_MAIN_REG_WRITES |LOG_DCA)
-#define VERBOSE             (LOG_MAIN_REG_WRITES)
-
+#define VERBOSE             (0)
 #include "logmacro.h"
 
 // device type definition
@@ -440,8 +436,8 @@ void mcd212_device::process_ica()
 
 	if (irq2_counter>100)
 	{
-		for(int i =0; i < 256;i++)
-			printf("0x%x,\n",m_clut[i]);
+		/*for(int i =0; i < 256;i++)
+			printf("0x%x,\n",m_clut[i]);*/
 		storememory();
 		irq2_counter=0;
 	}
@@ -1273,16 +1269,12 @@ uint32_t mcd212_device::screen_update(screen_device &screen, bitmap_rgb32 &bitma
 		bool draw_line = true;
 		if (!BIT(m_dcr[0], DCR_FD_BIT) && BIT(m_csrw[0], CSR1W_ST_BIT))
 		{
-			printf("Yep %x %x\n",BIT(m_dcr[0], DCR_FD_BIT),BIT(m_csrw[0], CSR1W_ST_BIT));
 			// If PAL and 'Standard' bit set, insert a 20-line border on the top/bottom
 			if ((scanline - m_ica_height < 20) || (scanline >= (m_total_height - 20)))
 			{
 				std::fill_n(out, 768, 0xff101010);
 				draw_line = false;
 			}
-		}
-		else{
-			printf("Nope %x %x\n",BIT(m_dcr[0], DCR_FD_BIT),BIT(m_csrw[0], CSR1W_ST_BIT));
 		}
 
 		m_csrr[0] |= CSR1R_DA;

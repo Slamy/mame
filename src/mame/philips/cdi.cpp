@@ -244,6 +244,7 @@ void storememory()
 	char path[100];
 	static int index=0;
 	sprintf(path,"ramdump%d.bin",index);
+	printf(path,"ramdump%d.bin",index);
 	index++;
 	FILE *f=fopen(path,"wb");
 	assert(f);
