@@ -38,7 +38,7 @@ TODO:
 #define LOG_RAM         (1U << 9)
 #define LOG_ALL         (LOG_DECODES | LOG_SAMPLES | LOG_COMMANDS | LOG_SECTORS | LOG_IRQS | LOG_READS | LOG_WRITES | LOG_UNKNOWNS | LOG_RAM)
 
-#define VERBOSE         (0)
+#define VERBOSE (LOG_ALL)
 #include "logmacro.h"
 
 // device type definition
@@ -680,7 +680,7 @@ void cdicdic_device::process_audio_map()
 		return;
 	}
 
-	LOGMASKED(LOG_SAMPLES, "Procesing audio map from %04x\n", m_decode_addr);
+	LOGMASKED(LOG_SAMPLES, "Processing audio map from %04x\n", m_decode_addr);
 
 	uint8_t *ram = &m_ram[m_decode_addr & 0x3ffe];
 	m_decode_addr ^= 0x1a00;
@@ -721,6 +721,8 @@ void cdicdic_device::update_interrupt_state()
 	const bool interrupt_active = (bool)BIT(m_x_buffer | m_audio_buffer, 15);
 	if (!interrupt_active)
 		LOGMASKED(LOG_SECTORS, "%s: Clearing CDIC interrupt line\n", machine().describe_context());
+	if (interrupt_active)
+		LOGMASKED(LOG_SECTORS, "%s: Setting CDIC interrupt line\n", machine().describe_context());
 	m_intreq_callback(interrupt_active ? ASSERT_LINE : CLEAR_LINE);
 }
 
@@ -819,6 +821,7 @@ bool cdicdic_device::is_mode2_sector_selected(const uint8_t *buffer)
 
 bool cdicdic_device::is_mode2_audio_selected(const uint8_t *buffer)
 {
+	printf("Is it audio? %d %d\n", buffer[SECTOR_SUBMODE2] & SUBMODE_FORM, buffer[SECTOR_SUBMODE2] & SUBMODE_AUDIO);
 	// Non-Mode-2, Non-Audio sectors are never selected for audio playback.
 	if (!(buffer[SECTOR_SUBMODE2] & SUBMODE_FORM) || !(buffer[SECTOR_SUBMODE2] & SUBMODE_AUDIO))
 	{
@@ -1157,6 +1160,7 @@ void cdicdic_device::process_sector_data(const uint8_t *buffer, const uint8_t *s
 	m_data_buffer &= ~0x0004;
 
 	uint16_t *dev_buffer = (uint16_t *)&m_ram[(m_data_buffer & 0x0005) * 0xa00];
+	uint8_t *buf2 = (uint8_t *)dev_buffer;
 
 	for (int i = SECTOR_HEADER; i < SECTOR_FILE2; i += 2)
 		*dev_buffer++ = ((uint16_t)buffer[i] << 8) | buffer[i + 1];
@@ -1165,10 +1169,18 @@ void cdicdic_device::process_sector_data(const uint8_t *buffer, const uint8_t *s
 	{
 		m_data_buffer |= 0x0004;
 		dev_buffer += 0x1400;
+		printf("CD Audio Sector delivered to %x. Play that\n", (m_data_buffer & 0x0005) * 0xa00);
+	}
+	else
+	{
+		printf("CD Data Sector delivered to %x\n", (m_data_buffer & 0x0005) * 0xa00);
+
+		for (int i = SECTOR_FILE2; i < SECTOR_SIZE; i += 2)
+			*dev_buffer++ = ((uint16_t)buffer[i] << 8) | buffer[i + 1];
 	}
 
-	for (int i = SECTOR_FILE2; i < SECTOR_SIZE; i += 2)
-		*dev_buffer++ = ((uint16_t)buffer[i] << 8) | buffer[i + 1];
+	uint64_t adr = ((uint64_t)dev_buffer) - ((uint64_t)&m_ram[0]);
+	printf("Sector %02x %02x %02x delivery ended at %04lx. Cause IRQ. Buffer bit set to %d\n", buf2[1], buf2[0], buf2[3], adr, m_data_buffer & 1);
 
 	for (int i = SUBCODE_Q_CONTROL; i <= SUBCODE_Q_CRC1; i++)
 		*dev_buffer++ = subcode_buffer[i];
@@ -1338,6 +1350,7 @@ void cdicdic_device::regs_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 			else if (!m_decoding_audio_map)
 			{
 				m_decode_addr = m_z_buffer & 0x3a00;
+				printf("Start playback of audiomap %x\n", m_decode_addr);
 				m_audio_format_sectors = 0;
 				m_audio_sector_counter = 1;
 				m_decoding_audio_map = true;
