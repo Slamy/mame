@@ -303,7 +303,7 @@ void cdislave_hle_device::slave_w(offs_t offset, uint16_t data)
 							memset(m_in_buf, 0, 17);
 							m_in_index = 0;
 							m_in_count = 0;
-							prepare_readback(attotime::from_hz(4), 3, 4, 0xb0, 0x00, 0x02, 0x15, 0xb0);
+							prepare_readback(attotime::from_hz(4), 3, 4, 0xb0, 0x00, 0x01, 0x25, 0xb0);
 							break;
 						//case 0xb1: // Request Disc Base
 							//memset(m_in_buf, 0, 17);

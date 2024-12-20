@@ -1087,7 +1087,7 @@ void cdicdic_device::process_disc_sector()
 			*toc_buffer++ = 0xa1;
 			if (audio_tracks > 0)
 			{
-				uint8_t last_audio_track = (uint8_t)(audio_tracks - 1);
+				uint8_t last_audio_track = (uint8_t)(audio_tracks);
 				*toc_buffer++ = ((last_audio_track / 10) << 4) | (last_audio_track % 10);
 			}
 			else
@@ -1112,10 +1112,14 @@ void cdicdic_device::process_disc_sector()
 
 		uint8_t *toc_data = &buffer[(m_curr_lba % entry_count) * 5];
 
+		printf("TOC %3d  %02d:%02d   %02x %02x %02x %02x %02x\n",(m_curr_lba % entry_count) * 5,
+			secs_bcd, frac_bcd,
+			toc_data[0], toc_data[1], toc_data[2], toc_data[3], toc_data[4]);
+			
 		subcode_buffer[SUBCODE_Q_CONTROL] = toc_data[0];
-		subcode_buffer[SUBCODE_Q_TRACK] = 0x00;
+		subcode_buffer[SUBCODE_Q_TRACK] = m_curr_lba >= entry_count ? 0x01 : 0x00;
 		subcode_buffer[SUBCODE_Q_INDEX] = toc_data[1];
-		subcode_buffer[SUBCODE_Q_MODE1_MINS] = 0xa0;
+		subcode_buffer[SUBCODE_Q_MODE1_MINS] = mins_bcd;
 		subcode_buffer[SUBCODE_Q_MODE1_SECS] = secs_bcd;
 		subcode_buffer[SUBCODE_Q_MODE1_FRAC] = frac_bcd;
 		subcode_buffer[SUBCODE_Q_MODE1_ZERO] = 0x00;
