@@ -240,6 +240,12 @@ void cdislave_hle_device::slave_w(offs_t offset, uint16_t data)
 				{
 					switch (m_in_buf[0])
 					{
+						case 0xc0: case 0xc1: case 0xc2: case 0xc3: case 0xc4: case 0xc5: case 0xc6: case 0xc7:
+						case 0xc8: case 0xc9: case 0xca: case 0xcb: case 0xcc: case 0xcd: case 0xce: case 0xcf:
+							printf("Atten: %x  %x %x %x %x\n",m_in_buf[0],m_in_buf[1],m_in_buf[2],m_in_buf[3],m_in_buf[4]);
+							m_in_index = 0;
+						    m_in_count = 0;
+							break;
 						case 0xf0: // Set Front Panel LCD
 							memset(m_in_buf + 1, 0, 16);
 							m_in_count = 17;
@@ -266,6 +272,7 @@ void cdislave_hle_device::slave_w(offs_t offset, uint16_t data)
 						m_in_index = 0;
 						m_in_count = 0;
 						//cdic->audio_sample_timer->adjust(attotime::never);
+						printf("Mute Audio\n");
 						break;
 					}
 					case 0x83: // Unmute Audio
@@ -275,6 +282,14 @@ void cdislave_hle_device::slave_w(offs_t offset, uint16_t data)
 						m_dmadac[1]->set_volume(0x100);
 						m_in_index = 0;
 						m_in_count = 0;
+						printf("Unmute Audio\n");
+						break;
+					}
+					case 0xc0: case 0xc1: case 0xc2: case 0xc3: case 0xc4: case 0xc5: case 0xc6: case 0xc7:
+					case 0xc8: case 0xc9: case 0xca: case 0xcb: case 0xcc: case 0xcd: case 0xce: case 0xcf:
+					{
+						LOGMASKED(LOG_COMMANDS, "slave_w: Channel %d: Set Attenuation Audio\n", offset);
+						m_in_count = 5;
 						break;
 					}
 					case 0xf0: // Set Front Panel LCD
