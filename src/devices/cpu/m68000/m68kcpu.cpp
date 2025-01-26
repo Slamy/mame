@@ -831,6 +831,7 @@ bool m68000_musashi_device::memory_translate(int spacenum, int intention, offs_t
 
 
 
+int pcanalysis=0;
 
 
 
@@ -900,6 +901,21 @@ void m68000_musashi_device::execute_run()
 			/* Call external hook to peek at CPU */
 			debugger_instruction_hook(m_pc);
 
+			if (m_pc == 0x0042a4c6) {
+			printf("****\n");
+			pcanalysis=10;
+			}
+
+			if (pcanalysis-- > 0)
+			{
+				printf("%x",m_pc);
+
+				for (int i=0;i <16;i++)
+					printf(" %x",m_dar[i]);
+
+				printf("\n");
+			}
+			
 			try
 			{
 			if (!m_can_instruction_restart)

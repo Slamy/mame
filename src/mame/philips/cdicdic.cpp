@@ -38,7 +38,7 @@ TODO:
 #define LOG_RAM         (1U << 9)
 #define LOG_ALL         (LOG_DECODES | LOG_SAMPLES | LOG_COMMANDS | LOG_SECTORS | LOG_IRQS | LOG_READS | LOG_WRITES | LOG_UNKNOWNS | LOG_RAM)
 
-#define VERBOSE         (0)
+#define VERBOSE         (LOG_ALL)
 #include "logmacro.h"
 
 // device type definition
@@ -1153,17 +1153,39 @@ void cdicdic_device::process_disc_sector()
 
 void cdicdic_device::process_sector_data(const uint8_t *buffer, const uint8_t *subcode_buffer)
 {
-	m_data_buffer ^= 0x0001;
-	m_data_buffer &= ~0x0004;
+	m_data_buffer &= ~0x0005;
 
-	uint16_t *dev_buffer = (uint16_t *)&m_ram[(m_data_buffer & 0x0005) * 0xa00];
+	if (m_command == 0x2a && is_mode2_audio_selected(buffer))
+	{
+		m_data_buffer |= audio_buffer ? 5 : 4;
+		audio_buffer=!audio_buffer;
+		
+	}
+	else
+	{
+		m_data_buffer |= data_buffer ? 1 : 0;
+		data_buffer=!data_buffer;
+	}
+
+	uint16_t *dev_buffer = (uint16_t *)&m_ram[(m_data_buffer & 0x0001) * 0xa00];
 
 	for (int i = SECTOR_HEADER; i < SECTOR_FILE2; i += 2)
 		*dev_buffer++ = ((uint16_t)buffer[i] << 8) | buffer[i + 1];
 
+	// m_z_buffer =0xd7fe;
 	if (m_command == 0x2a && is_mode2_audio_selected(buffer))
 	{
-		m_data_buffer |= 0x0004;
+		//if (pause_flag)
+		{
+			pause_flag--;
+			//if (!pause_flag)
+			{
+				m_z_buffer &= ~0x0800;
+				m_z_buffer |= 0x0001;
+			}
+		}
+		
+		m_data_buffer |= 0x0020;
 		dev_buffer += 0x1400;
 	}
 
@@ -1183,69 +1205,72 @@ void cdicdic_device::process_sector_data(const uint8_t *buffer, const uint8_t *s
 
 uint16_t cdicdic_device::regs_r(offs_t offset, uint16_t mem_mask)
 {
-	uint32_t addr = offset + 0x3c00/2;
+	uint32_t addr = offset + 0x3c00 / 2;
 
 	switch (addr)
 	{
-		case 0x3c00/2: // Command register
-			LOGMASKED(LOG_READS, "%s: cdic_r: Command Register = %04x & %04x\n", machine().describe_context(), m_command, mem_mask);
-			return m_command;
+	case 0x3c00 / 2: // Command register
+		LOGMASKED(LOG_READS, "%s: cdic_r: Command Register = %04x & %04x\n", machine().describe_context(), m_command, mem_mask);
+		return m_command;
 
-		case 0x3c02/2: // Time register (MSW)
-			LOGMASKED(LOG_READS, "%s: cdic_r: Time Register (MSW) = %04x & %04x\n", machine().describe_context(), m_time >> 16, mem_mask);
-			return m_time >> 16;
+	case 0x3c02 / 2: // Time register (MSW)
+		LOGMASKED(LOG_READS, "%s: cdic_r: Time Register (MSW) = %04x & %04x\n", machine().describe_context(), m_time >> 16, mem_mask);
+		return m_time >> 16;
 
-		case 0x3c04/2: // Time register (LSW)
-			LOGMASKED(LOG_READS, "%s: cdic_r: Time Register (LSW) = %04x & %04x\n", machine().describe_context(), (uint16_t)(m_time & 0x0000ffff), mem_mask);
-			return m_time & 0x0000ffff;
+	case 0x3c04 / 2: // Time register (LSW)
+		LOGMASKED(LOG_READS, "%s: cdic_r: Time Register (LSW) = %04x & %04x\n", machine().describe_context(), (uint16_t)(m_time & 0x0000ffff), mem_mask);
+		return m_time & 0x0000ffff;
 
-		case 0x3c06/2: // File register
-			LOGMASKED(LOG_READS, "%s: cdic_r: File Register = %04x & %04x\n", machine().describe_context(), m_file, mem_mask);
-			return m_file;
+	case 0x3c06 / 2: // File register
+		LOGMASKED(LOG_READS, "%s: cdic_r: File Register = %04x & %04x\n", machine().describe_context(), m_file, mem_mask);
+		return m_file;
 
-		case 0x3c08/2: // Channel register (MSW)
-			LOGMASKED(LOG_READS, "%s: cdic_r: Channel Register (MSW) = %04x & %04x\n", machine().describe_context(), m_channel >> 16, mem_mask);
-			return m_channel >> 16;
+	case 0x3c08 / 2: // Channel register (MSW)
+		LOGMASKED(LOG_READS, "%s: cdic_r: Channel Register (MSW) = %04x & %04x\n", machine().describe_context(), m_channel >> 16, mem_mask);
+		return m_channel >> 16;
 
-		case 0x3c0a/2: // Channel register (LSW)
-			LOGMASKED(LOG_READS, "%s: cdic_r: Channel Register (LSW) = %04x & %04x\n", machine().describe_context(), m_channel & 0x0000ffff, mem_mask);
-			return m_channel & 0x0000ffff;
+	case 0x3c0a / 2: // Channel register (LSW)
+		LOGMASKED(LOG_READS, "%s: cdic_r: Channel Register (LSW) = %04x & %04x\n", machine().describe_context(), m_channel & 0x0000ffff, mem_mask);
+		return m_channel & 0x0000ffff;
 
-		case 0x3c0c/2: // Audio Channel register
-			LOGMASKED(LOG_READS, "%s: cdic_r: Audio Channel Register = %04x & %04x\n", machine().describe_context(), m_audio_channel, mem_mask);
-			return m_audio_channel;
+	case 0x3c0c / 2: // Audio Channel register
+		LOGMASKED(LOG_READS, "%s: cdic_r: Audio Channel Register = %04x & %04x\n", machine().describe_context(), m_audio_channel, mem_mask);
+		return m_audio_channel;
 
-		case 0x3ff4/2: // ABUF
-		{
-			uint16_t temp = m_audio_buffer;
-			LOGMASKED(LOG_READS, "%s: cdic_r: Audio Buffer Register = %04x & %04x\n", machine().describe_context(), temp, mem_mask);
-			m_audio_buffer &= 0x7fff;
-			update_interrupt_state();
-			return temp;
-		}
+	case 0x3ff4 / 2: // ABUF
+	{
+		uint16_t temp = m_audio_buffer;
+		LOGMASKED(LOG_READS, "%s: cdic_r: Audio Buffer Register = %04x & %04x\n", machine().describe_context(), temp, mem_mask);
+		m_audio_buffer &= 0x7fff;
+		update_interrupt_state();
+		return temp;
+	}
 
-		case 0x3ff6/2: // XBUF
-		{
-			uint16_t temp = m_x_buffer;
-			LOGMASKED(LOG_READS, "%s: cdic_r: X-Buffer Register = %04x & %04x\n", machine().describe_context(), temp, mem_mask);
-			m_x_buffer &= 0x7fff;
-			update_interrupt_state();
-			return temp;
-		}
+	case 0x3ff6 / 2: // XBUF
+	{
+		uint16_t temp = m_x_buffer;
+		LOGMASKED(LOG_READS, "%s: cdic_r: X-Buffer Register = %04x & %04x\n", machine().describe_context(), temp, mem_mask);
+		m_x_buffer &= 0x7fff;
+		update_interrupt_state();
+		return temp;
+	}
 
-		case 0x3ffa/2: // AUDCTL
-			if (!m_decoding_audio_map)
-				m_z_buffer ^= 0x0001;
-			LOGMASKED(LOG_READS, "%s: cdic_r: Z-Buffer Register Read: %04x & %04x\n", machine().describe_context(), m_z_buffer, mem_mask);
-			return m_z_buffer;
+	case 0x3ffa / 2: // AUDCTL
+	/*
+		if (!m_decoding_audio_map)
+			m_z_buffer ^= 0x0001;
+	*/
+		LOGMASKED(LOG_READS, "%s: cdic_r: Z-Buffer Register Read: %04x & %04x\n", machine().describe_context(), m_z_buffer, mem_mask);
+		//printf("%x\n", m_z_buffer);
+		return m_z_buffer;
 
-		case 0x3ffe/2:
-			LOGMASKED(LOG_READS, "%s: cdic_r: Data buffer Register = %04x & %04x\n", machine().describe_context(), m_data_buffer, mem_mask);
-			return m_data_buffer;
+	case 0x3ffe / 2:
+		LOGMASKED(LOG_READS, "%s: cdic_r: Data buffer Register = %04x & %04x\n", machine().describe_context(), m_data_buffer, mem_mask);
+		return m_data_buffer;
 
-		default:
-			LOGMASKED(LOG_READS | LOG_UNKNOWNS, "%s: cdic_r: Unknown address: %04x & %04x\n", machine().describe_context(), addr*2, mem_mask);
-			return 0;
+	default:
+		LOGMASKED(LOG_READS | LOG_UNKNOWNS, "%s: cdic_r: Unknown address: %04x & %04x\n", machine().describe_context(), addr * 2, mem_mask);
+		return 0;
 	}
 }
 
@@ -1379,6 +1404,10 @@ void cdicdic_device::init_disc_read(uint8_t disc_mode)
 	m_disc_mode = disc_mode;
 	m_curr_lba = lba_from_time();
 	m_disc_spinup_counter = 1;
+	pause_flag = 3;
+	data_buffer=1;
+	audio_buffer=0;
+	//m_z_buffer |= 0x0800;
 }
 
 void cdicdic_device::cancel_disc_read()
@@ -1426,6 +1455,7 @@ void cdicdic_device::handle_cdic_command()
 	}
 
 	m_data_buffer &= ~0x8000;
+	//m_data_buffer |= 1;
 }
 
 uint32_t cdicdic_device::lba_from_time()

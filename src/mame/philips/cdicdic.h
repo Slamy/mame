@@ -171,7 +171,10 @@ private:
 	uint16_t m_z_buffer;          // CDIC Z-Buffer Register           (0x303ffa)
 	uint16_t m_interrupt_vector;  // CDIC Interrupt Vector Register   (0x303ffc)
 	uint16_t m_data_buffer;       // CDIC Data Buffer Register        (0x303ffe)
-
+	int pause_flag;
+	int data_buffer;
+	int audio_buffer;
+	
 	bool m_cd_byteswap;
 
 	emu_timer *m_sector_timer;
