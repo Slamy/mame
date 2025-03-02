@@ -242,6 +242,7 @@ void cdislave_hle_device::slave_w(offs_t offset, uint16_t data)
 					{
 						case 0xc0: case 0xc1: case 0xc2: case 0xc3: case 0xc4: case 0xc5: case 0xc6: case 0xc7:
 						case 0xc8: case 0xc9: case 0xca: case 0xcb: case 0xcc: case 0xcd: case 0xce: case 0xcf:
+							fprintf(stderr,"Atten: %x  %x %x %x %x\n",m_in_buf[0],m_in_buf[1],m_in_buf[2],m_in_buf[3],m_in_buf[4]);
 							printf("Atten: %x  %x %x %x %x\n",m_in_buf[0],m_in_buf[1],m_in_buf[2],m_in_buf[3],m_in_buf[4]);
 							m_in_index = 0;
 						    m_in_count = 0;
@@ -273,6 +274,7 @@ void cdislave_hle_device::slave_w(offs_t offset, uint16_t data)
 						m_in_count = 0;
 						//cdic->audio_sample_timer->adjust(attotime::never);
 						printf("Mute Audio\n");
+						fprintf(stderr,"Mute Audio\n");
 						break;
 					}
 					case 0x83: // Unmute Audio
@@ -283,6 +285,8 @@ void cdislave_hle_device::slave_w(offs_t offset, uint16_t data)
 						m_in_index = 0;
 						m_in_count = 0;
 						printf("Unmute Audio\n");
+						fprintf(stderr,"Unmute Audio\n");
+
 						break;
 					}
 					case 0xc0: case 0xc1: case 0xc2: case 0xc3: case 0xc4: case 0xc5: case 0xc6: case 0xc7:
@@ -318,7 +322,11 @@ void cdislave_hle_device::slave_w(offs_t offset, uint16_t data)
 							memset(m_in_buf, 0, 17);
 							m_in_index = 0;
 							m_in_count = 0;
+							// CD-i
 							prepare_readback(attotime::from_hz(4), 3, 4, 0xb0, 0x00, 0x02, 0x15, 0xb0);
+							// Audio CD
+							// prepare_readback(attotime::from_hz(4), 3, 4, 0xb0, 0x00, 0x01, 0x25, 0xb0);
+
 							break;
 						//case 0xb1: // Request Disc Base
 							//memset(m_in_buf, 0, 17);
