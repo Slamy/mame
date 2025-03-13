@@ -38,7 +38,7 @@ TODO:
 #define LOG_RAM (1U << 9)
 #define LOG_ALL (LOG_DECODES | LOG_SAMPLES | LOG_COMMANDS | LOG_SECTORS | LOG_IRQS | LOG_READS | LOG_WRITES | LOG_UNKNOWNS | LOG_RAM)
 
-#define VERBOSE (0)
+#define VERBOSE (LOG_ALL)
 #include "logmacro.h"
 
 // device type definition
@@ -677,6 +677,7 @@ void cdicdic_device::process_audio_map()
 	}
 
 	LOGMASKED(LOG_SAMPLES, "Procesing audio map from %04x\n", m_decode_addr);
+	printf("Audio Map!\n");
 
 	uint8_t *ram = &m_ram[m_decode_addr & 0x3ffe];
 	m_decode_addr ^= 0x1a00;
@@ -689,7 +690,7 @@ void cdicdic_device::process_audio_map()
 	{
 		m_decoding_audio_map = true;
 		m_audio_format_sectors = get_sector_count_for_coding(coding);
-		m_audio_sector_counter = m_audio_format_sectors;
+		m_audio_sector_counter = m_audio_format_sectors*5;
 
 		ram += SECTOR_DATA - SECTOR_HEADER;
 		uint8_t swapped_data[(SECTOR_SIZE - (SECTOR_DATA - SECTOR_HEADER))];
@@ -703,6 +704,9 @@ void cdicdic_device::process_audio_map()
 	{
 		m_decode_addr = 0xffff;
 		m_audio_sector_counter = 0;
+		printf("Setting lowest bit caused by audiomap finished!\n");
+		m_z_buffer |= 0x0001;
+		m_z_buffer &= ~0x0800;
 	}
 
 	if (was_decoding)
@@ -714,7 +718,10 @@ void cdicdic_device::process_audio_map()
 
 void cdicdic_device::update_interrupt_state()
 {
+	//const bool interrupt_active = (bool)BIT(m_audio_buffer, 15) || ((m_data_buffer & 0x4000) && (bool)BIT(m_x_buffer, 15));
 	const bool interrupt_active = (bool)BIT(m_x_buffer | m_audio_buffer, 15);
+	if (interrupt_active)
+		LOGMASKED(LOG_SECTORS, "%s: Setting CDIC interrupt line\n", machine().describe_context());
 	if (!interrupt_active)
 		LOGMASKED(LOG_SECTORS, "%s: Clearing CDIC interrupt line\n", machine().describe_context());
 	m_intreq_callback(interrupt_active ? ASSERT_LINE : CLEAR_LINE);
@@ -830,6 +837,8 @@ bool cdicdic_device::is_mode2_audio_selected(const uint8_t *buffer)
 	return channel_selected;
 }
 
+static bool has_spun_once = false;
+
 TIMER_CALLBACK_MEMBER(cdicdic_device::sector_tick)
 {
 	if (m_disc_command == 0)
@@ -841,11 +850,33 @@ TIMER_CALLBACK_MEMBER(cdicdic_device::sector_tick)
 	{
 		LOGMASKED(LOG_SECTORS, "Sector tick, waiting on spinup\n");
 		m_disc_spinup_counter--;
+
+		if (m_disc_spinup_counter == 13 && has_spun_once && m_disc_mode == DISC_MODE2)
+		{
+			/*
+			m_x_buffer |= 0x8000;
+			m_ram[1]=0xff;
+			m_ram[0]=0xc0;
+			m_ram[3]=0xff;
+			m_ram[2]=0xc0;
+
+			m_ram[0x0a01]=0xff;
+			m_ram[0x0a00]=0xc0;
+			m_ram[0x0a03]=0xff;
+			m_ram[0x0a02]=0xc0;
+
+			printf("SPECIAL!\n");
+			update_interrupt_state();
+			*/
+		}
+
 		return;
 	}
 
 	LOGMASKED(LOG_SECTORS, "About to process a disc sector\n");
-
+	has_spun_once = true;
+	//m_x_buffer |= 0x8000;
+	//update_interrupt_state();
 	process_disc_sector();
 
 	if (m_disc_command == 0)
@@ -977,7 +1008,7 @@ void cdicdic_device::process_disc_sector()
 		if (is_mode2_audio_selected(buffer))
 		{
 			LOGMASKED(LOG_SECTORS, "Audio is selected\n");
-			m_audio_sector_counter = get_sector_count_for_coding(buffer[SECTOR_CODING2]);
+			m_audio_sector_counter = get_sector_count_for_coding(buffer[SECTOR_CODING2])*5;
 			m_decoding_audio_map = false;
 
 			play_audio_sector(buffer[SECTOR_CODING2], buffer + SECTOR_DATA);
@@ -985,7 +1016,7 @@ void cdicdic_device::process_disc_sector()
 	}
 	else if (m_disc_mode == DISC_CDDA)
 	{
-		m_audio_sector_counter = 2;
+		m_audio_sector_counter = 2*5;
 		m_decoding_audio_map = false;
 
 		// Byteswap if not already detected as byteswapped
@@ -1083,7 +1114,7 @@ void cdicdic_device::process_disc_sector()
 			*toc_buffer++ = 0xa1;
 			if (audio_tracks > 0)
 			{
-				uint8_t last_audio_track = (uint8_t)(audio_tracks - 1);
+				uint8_t last_audio_track = (uint8_t)(audio_tracks);
 				*toc_buffer++ = ((last_audio_track / 10) << 4) | (last_audio_track % 10);
 			}
 			else
@@ -1108,10 +1139,14 @@ void cdicdic_device::process_disc_sector()
 
 		uint8_t *toc_data = &buffer[(m_curr_lba % entry_count) * 5];
 
+		printf("TOC %3d  %02d:%02d   %02x %02x %02x %02x %02x\n", (m_curr_lba % entry_count) * 5,
+			   secs_bcd, frac_bcd,
+			   toc_data[0], toc_data[1], toc_data[2], toc_data[3], toc_data[4]);
+
 		subcode_buffer[SUBCODE_Q_CONTROL] = toc_data[0];
-		subcode_buffer[SUBCODE_Q_TRACK] = 0x00;
+		subcode_buffer[SUBCODE_Q_TRACK] = m_curr_lba >= entry_count ? 0x01 : 0x00;
 		subcode_buffer[SUBCODE_Q_INDEX] = toc_data[1];
-		subcode_buffer[SUBCODE_Q_MODE1_MINS] = 0xa0;
+		subcode_buffer[SUBCODE_Q_MODE1_MINS] = mins_bcd;
 		subcode_buffer[SUBCODE_Q_MODE1_SECS] = secs_bcd;
 		subcode_buffer[SUBCODE_Q_MODE1_FRAC] = frac_bcd;
 		subcode_buffer[SUBCODE_Q_MODE1_ZERO] = 0x00;
@@ -1149,19 +1184,35 @@ void cdicdic_device::process_disc_sector()
 
 void cdicdic_device::process_sector_data(const uint8_t *buffer, const uint8_t *subcode_buffer)
 {
-	m_data_buffer ^= 0x0001;
-	m_data_buffer &= ~0x0004;
+	m_data_buffer &= ~0x0005;
 
-	uint16_t *dev_buffer = (uint16_t *)&m_ram[(m_data_buffer & 0x0005) * 0xa00];
+	if ((m_command == 0x2a || m_command==0x2e) && is_mode2_audio_selected(buffer))
+	{
+		m_data_buffer |= audio_buffer ? 5 : 4;
+		audio_buffer = !audio_buffer;
+	}
+	else
+	{
+		m_data_buffer |= data_buffer ? 1 : 0;
+		data_buffer = !data_buffer;
+	}
+
+	uint16_t *dev_buffer = (uint16_t *)&m_ram[(m_data_buffer & 0x0001) * 0xa00];
 
 	for (int i = SECTOR_HEADER; i < SECTOR_FILE2; i += 2)
 		*dev_buffer++ = ((uint16_t)buffer[i] << 8) | buffer[i + 1];
 
-	if (m_command == 0x2a && is_mode2_audio_selected(buffer))
+	if ((m_command == 0x2a || m_command==0x2e) && is_mode2_audio_selected(buffer))
 	{
 		m_data_buffer |= 0x0004;
 		dev_buffer += 0x1400;
 	}
+
+	if (m_command == 0x2a)
+	{
+		m_data_buffer |= 0x0020;
+	}
+	m_data_buffer |= 0x0800;
 
 	for (int i = SECTOR_FILE2; i < SECTOR_SIZE; i += 2)
 		*dev_buffer++ = ((uint16_t)buffer[i] << 8) | buffer[i + 1];
@@ -1170,7 +1221,6 @@ void cdicdic_device::process_sector_data(const uint8_t *buffer, const uint8_t *s
 		*dev_buffer++ = subcode_buffer[i];
 
 	m_x_buffer |= 0x8000;
-	m_data_buffer |= 0x4000;
 	update_interrupt_state();
 
 	if (m_command == 0x23 || m_command == 0x24) // Reset? If so, stop.
@@ -1230,15 +1280,25 @@ uint16_t cdicdic_device::regs_r(offs_t offset, uint16_t mem_mask)
 	}
 
 	case 0x3ffa / 2: // AUDCTL
+	{
+		LOGMASKED(LOG_READS, "%s: cdic_r: Z-Buffer Register Is: %04x & %04x\n", machine().describe_context(), m_z_buffer, mem_mask);
+
 		if (!m_decoding_audio_map)
-			m_z_buffer ^= 0x0001;
-		LOGMASKED(LOG_READS, "%s: cdic_r: Z-Buffer Register Read: %04x & %04x\n", machine().describe_context(), m_z_buffer, mem_mask);
-		return m_z_buffer;
+			m_z_buffer &= ~0x0800;
 
+		uint16_t temp = m_z_buffer;
+		m_z_buffer &= 0xfffe;
+		LOGMASKED(LOG_READS, "%s: cdic_r: Z-Buffer Register Read: %04x & %04x\n", machine().describe_context(), temp, mem_mask);
+		return temp;
+	}
 	case 0x3ffe / 2:
-		LOGMASKED(LOG_READS, "%s: cdic_r: Data buffer Register = %04x & %04x\n", machine().describe_context(), m_data_buffer, mem_mask);
-		return m_data_buffer;
+	{
+		uint16_t temp = m_data_buffer;
+		m_data_buffer &= ~0x0080;
 
+		LOGMASKED(LOG_READS, "%s: cdic_r: Data buffer Register = %04x & %04x\n", machine().describe_context(), temp, mem_mask);
+		return temp;
+	}
 	default:
 		LOGMASKED(LOG_READS | LOG_UNKNOWNS, "%s: cdic_r: Unknown address: %04x & %04x\n", machine().describe_context(), addr * 2, mem_mask);
 		return 0;
@@ -1339,6 +1399,12 @@ void cdicdic_device::regs_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 			m_decoding_audio_map = true;
 			std::fill_n(&m_xa_last[0], 4, 0);
 		}
+
+		if (!m_decoding_audio_map && (m_z_buffer & 0x0800))
+		{
+			m_z_buffer |= 1;
+			printf("Setting lowest bit!\n");
+		}
 		break;
 
 	case 0x3ffc / 2:
@@ -1360,6 +1426,9 @@ void cdicdic_device::regs_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 			m_disc_mode = 0;
 			m_disc_spinup_counter = 0;
 			m_curr_lba = 0;
+			// m_z_buffer &= ~1;
+			data_buffer = 1;
+			audio_buffer = 0;
 		}
 		break;
 
@@ -1374,7 +1443,7 @@ void cdicdic_device::init_disc_read(uint8_t disc_mode)
 	m_disc_command = m_command;
 	m_disc_mode = disc_mode;
 	m_curr_lba = lba_from_time();
-	m_disc_spinup_counter = 1;
+	m_disc_spinup_counter = 19;
 }
 
 void cdicdic_device::cancel_disc_read()
@@ -1542,7 +1611,7 @@ void cdicdic_device::device_reset()
 	m_decoding_audio_map = false;
 	m_decode_addr = 0;
 
-	m_audio_timer->adjust(attotime::from_hz(75), 0, attotime::from_hz(75));
+	m_audio_timer->adjust(attotime::from_hz(75*5), 0, attotime::from_hz(75*5));
 	m_sector_timer->adjust(attotime::from_hz(75), 0, attotime::from_hz(75));
 
 	m_intreq_callback(CLEAR_LINE);
