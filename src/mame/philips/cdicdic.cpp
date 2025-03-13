@@ -677,7 +677,6 @@ void cdicdic_device::process_audio_map()
 	}
 
 	LOGMASKED(LOG_SAMPLES, "Procesing audio map from %04x\n", m_decode_addr);
-	printf("Audio Map!\n");
 
 	uint8_t *ram = &m_ram[m_decode_addr & 0x3ffe];
 	m_decode_addr ^= 0x1a00;
@@ -690,7 +689,7 @@ void cdicdic_device::process_audio_map()
 	{
 		m_decoding_audio_map = true;
 		m_audio_format_sectors = get_sector_count_for_coding(coding);
-		m_audio_sector_counter = m_audio_format_sectors*5;
+		m_audio_sector_counter = m_audio_format_sectors;
 
 		ram += SECTOR_DATA - SECTOR_HEADER;
 		uint8_t swapped_data[(SECTOR_SIZE - (SECTOR_DATA - SECTOR_HEADER))];
@@ -704,9 +703,8 @@ void cdicdic_device::process_audio_map()
 	{
 		m_decode_addr = 0xffff;
 		m_audio_sector_counter = 0;
-		printf("Setting lowest bit caused by audiomap finished!\n");
-		m_z_buffer |= 0x0001;
-		m_z_buffer &= ~0x0800;
+		m_z_buffer |= 0x0001; // Setting bit 0 caused by audiomap finished
+		m_z_buffer &= ~0x0800; // Also reset bit 11
 	}
 
 	if (was_decoding)
@@ -718,7 +716,6 @@ void cdicdic_device::process_audio_map()
 
 void cdicdic_device::update_interrupt_state()
 {
-	//const bool interrupt_active = (bool)BIT(m_audio_buffer, 15) || ((m_data_buffer & 0x4000) && (bool)BIT(m_x_buffer, 15));
 	const bool interrupt_active = (bool)BIT(m_x_buffer | m_audio_buffer, 15);
 	if (interrupt_active)
 		LOGMASKED(LOG_SECTORS, "%s: Setting CDIC interrupt line\n", machine().describe_context());
@@ -837,8 +834,6 @@ bool cdicdic_device::is_mode2_audio_selected(const uint8_t *buffer)
 	return channel_selected;
 }
 
-static bool has_spun_once = false;
-
 TIMER_CALLBACK_MEMBER(cdicdic_device::sector_tick)
 {
 	if (m_disc_command == 0)
@@ -850,33 +845,11 @@ TIMER_CALLBACK_MEMBER(cdicdic_device::sector_tick)
 	{
 		LOGMASKED(LOG_SECTORS, "Sector tick, waiting on spinup\n");
 		m_disc_spinup_counter--;
-
-		if (m_disc_spinup_counter == 13 && has_spun_once && m_disc_mode == DISC_MODE2)
-		{
-			/*
-			m_x_buffer |= 0x8000;
-			m_ram[1]=0xff;
-			m_ram[0]=0xc0;
-			m_ram[3]=0xff;
-			m_ram[2]=0xc0;
-
-			m_ram[0x0a01]=0xff;
-			m_ram[0x0a00]=0xc0;
-			m_ram[0x0a03]=0xff;
-			m_ram[0x0a02]=0xc0;
-
-			printf("SPECIAL!\n");
-			update_interrupt_state();
-			*/
-		}
-
 		return;
 	}
 
 	LOGMASKED(LOG_SECTORS, "About to process a disc sector\n");
-	has_spun_once = true;
-	//m_x_buffer |= 0x8000;
-	//update_interrupt_state();
+
 	process_disc_sector();
 
 	if (m_disc_command == 0)
@@ -1008,7 +981,7 @@ void cdicdic_device::process_disc_sector()
 		if (is_mode2_audio_selected(buffer))
 		{
 			LOGMASKED(LOG_SECTORS, "Audio is selected\n");
-			m_audio_sector_counter = get_sector_count_for_coding(buffer[SECTOR_CODING2])*5;
+			m_audio_sector_counter = get_sector_count_for_coding(buffer[SECTOR_CODING2]);
 			m_decoding_audio_map = false;
 
 			play_audio_sector(buffer[SECTOR_CODING2], buffer + SECTOR_DATA);
@@ -1016,7 +989,7 @@ void cdicdic_device::process_disc_sector()
 	}
 	else if (m_disc_mode == DISC_CDDA)
 	{
-		m_audio_sector_counter = 2*5;
+		m_audio_sector_counter = 2;
 		m_decoding_audio_map = false;
 
 		// Byteswap if not already detected as byteswapped
@@ -1138,10 +1111,6 @@ void cdicdic_device::process_disc_sector()
 		}
 
 		uint8_t *toc_data = &buffer[(m_curr_lba % entry_count) * 5];
-
-		printf("TOC %3d  %02d:%02d   %02x %02x %02x %02x %02x\n", (m_curr_lba % entry_count) * 5,
-			   secs_bcd, frac_bcd,
-			   toc_data[0], toc_data[1], toc_data[2], toc_data[3], toc_data[4]);
 
 		subcode_buffer[SUBCODE_Q_CONTROL] = toc_data[0];
 		subcode_buffer[SUBCODE_Q_TRACK] = m_curr_lba >= entry_count ? 0x01 : 0x00;
@@ -1443,6 +1412,7 @@ void cdicdic_device::init_disc_read(uint8_t disc_mode)
 	m_disc_command = m_command;
 	m_disc_mode = disc_mode;
 	m_curr_lba = lba_from_time();
+	// Some spin up time to avoid audio issues
 	m_disc_spinup_counter = 19;
 }
 
@@ -1611,7 +1581,7 @@ void cdicdic_device::device_reset()
 	m_decoding_audio_map = false;
 	m_decode_addr = 0;
 
-	m_audio_timer->adjust(attotime::from_hz(75*5), 0, attotime::from_hz(75*5));
+	m_audio_timer->adjust(attotime::from_hz(75), 0, attotime::from_hz(75));
 	m_sector_timer->adjust(attotime::from_hz(75), 0, attotime::from_hz(75));
 
 	m_intreq_callback(CLEAR_LINE);
