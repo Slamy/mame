@@ -38,7 +38,7 @@ TODO:
 #define LOG_RAM (1U << 9)
 #define LOG_ALL (LOG_DECODES | LOG_SAMPLES | LOG_COMMANDS | LOG_SECTORS | LOG_IRQS | LOG_READS | LOG_WRITES | LOG_UNKNOWNS | LOG_RAM)
 
-#define VERBOSE (LOG_ALL)
+#define VERBOSE (0)
 #include "logmacro.h"
 
 // device type definition
@@ -1418,6 +1418,7 @@ void cdicdic_device::init_disc_read(uint8_t disc_mode)
 	m_disc_command = m_command;
 	m_disc_mode = disc_mode;
 	m_curr_lba = lba_from_time();
+	printf("Time: %x\n",m_time);
 	// Some spin up time to avoid audio issues
 	m_disc_spinup_counter = 19;
 }
