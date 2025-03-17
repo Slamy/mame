@@ -703,7 +703,7 @@ void cdicdic_device::process_audio_map()
 	{
 		m_decode_addr = 0xffff;
 		m_audio_sector_counter = 0;
-		m_z_buffer |= 0x0001; // Setting bit 0 caused by audiomap finished
+		m_z_buffer |= 0x0001;  // Setting bit 0 caused by audiomap finished
 		m_z_buffer &= ~0x0800; // Also reset bit 11
 	}
 
@@ -1112,6 +1112,12 @@ void cdicdic_device::process_disc_sector()
 
 		uint8_t *toc_data = &buffer[(m_curr_lba % entry_count) * 5];
 
+		for (int i = 0; i < entry_count; i++)
+		{
+			printf("toc_buffer[%d] = {%d, %d, %d, %d, %d};\n",
+				   i, buffer[i * 5], buffer[i * 5 + 1], buffer[i * 5 + 2], buffer[i * 5 + 3], buffer[i * 4]);
+		}
+
 		subcode_buffer[SUBCODE_Q_CONTROL] = toc_data[0];
 		subcode_buffer[SUBCODE_Q_TRACK] = m_curr_lba >= entry_count ? 0x01 : 0x00;
 		subcode_buffer[SUBCODE_Q_INDEX] = toc_data[1];
@@ -1155,7 +1161,7 @@ void cdicdic_device::process_sector_data(const uint8_t *buffer, const uint8_t *s
 {
 	m_data_buffer &= ~0x0005;
 
-	if ((m_command == 0x2a || m_command==0x2e) && is_mode2_audio_selected(buffer))
+	if ((m_command == 0x2a || m_command == 0x2e) && is_mode2_audio_selected(buffer))
 	{
 		m_data_buffer |= audio_buffer ? 5 : 4;
 		audio_buffer = !audio_buffer;
@@ -1171,7 +1177,7 @@ void cdicdic_device::process_sector_data(const uint8_t *buffer, const uint8_t *s
 	for (int i = SECTOR_HEADER; i < SECTOR_FILE2; i += 2)
 		*dev_buffer++ = ((uint16_t)buffer[i] << 8) | buffer[i + 1];
 
-	if ((m_command == 0x2a || m_command==0x2e) && is_mode2_audio_selected(buffer))
+	if ((m_command == 0x2a || m_command == 0x2e) && is_mode2_audio_selected(buffer))
 	{
 		m_data_buffer |= 0x0004;
 		dev_buffer += 0x1400;
@@ -1447,6 +1453,7 @@ void cdicdic_device::handle_cdic_command()
 		break;
 	case 0x27: // Fetch TOC
 		init_disc_read(DISC_TOC);
+		printf("TOC!\n");
 		break;
 	case 0x28: // Play CDDA
 		init_disc_read(DISC_CDDA);
