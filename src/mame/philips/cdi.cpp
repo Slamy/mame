@@ -73,7 +73,7 @@ TODO:
 #define LOG_QUIZARD_OTHER (1U << 4)
 #define LOG_UART (1U << 5)
 
-#define VERBOSE (0)
+#define VERBOSE (LOG_DVC)
 #include "logmacro.h"
 
 #define ENABLE_UART_PRINTING (0)
@@ -184,11 +184,22 @@ static INPUT_PORTS_START(cdi)
 	 *  Machine Initialization  *
 	 ***************************/
 
-	void cdi_state::machine_reset()
+	uint16_t dvc_rom[1024 * 128]{0};
+
+void cdi_state::machine_reset()
 {
 	uint16_t *src = &m_main_rom[0];
 	uint16_t *dst = &m_plane_ram[0][0];
 	memcpy(dst, src, 0x8);
+
+	printf("RESET!\n");
+	// FILE *dvc = fopen("/home/andre/GIT/mame/roms/cdimono1/impega.rom", "rb");
+	// FILE *dvc = fopen("/home/andre/GIT/mame/roms/cdimono1/impega.rom_swap", "rb");
+	FILE *dvc = fopen("/home/andre/GIT/Nobelia/vmpega.rom_swap", "rb");
+	if (!dvc)
+		exit(0);
+	fread(dvc_rom, 1, sizeof(dvc_rom), dvc);
+	fclose(dvc);
 }
 
 void quizard_state::machine_start()
@@ -226,6 +237,17 @@ uint16_t cdi_state::plane_r(offs_t offset, uint16_t mem_mask)
 template <int Channel>
 void cdi_state::plane_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
+	if (Channel)
+	{
+		//offs_t offset2 = (offset << 1) + 0x200000;
+		// printf("Write DRAM %06x %04x\n",offset2,data);
+	}
+	else
+	{
+		if ((offset << 1) < 0x400)
+			printf("Write DRAM %06x %04x\n", offset << 1, data);
+	}
+
 	m_maincpu->eat_cycles(m_mcd212->ram_dtack_cycle_count<Channel>());
 	COMBINE_DATA(&m_plane_ram[Channel][offset]);
 }
@@ -362,13 +384,25 @@ void quizard_state::mcu_p3_w(uint8_t data)
 
 uint16_t cdi_state::dvc_r(offs_t offset, uint16_t mem_mask)
 {
-	LOGMASKED(LOG_DVC, "%s: dvc_r: %08x = 0000 & %04x\n", machine().describe_context(), 0xe80000 + (offset << 1), mem_mask);
-	return 0;
+	offs_t byte_offset = offset << 1;
+
+	if (byte_offset >= 0x40000 && byte_offset <= (0x40000 + 256 * 1024))
+	{
+		printf("ROM %x %x\n",byte_offset,dvc_rom[offset - 0x20000]);
+		//return 0;
+
+		return dvc_rom[offset - 0x20000];
+	}
+	else
+	{
+		LOGMASKED(LOG_DVC, "%s: dvc_r: %08x = 0000 & %04x   %04x\n", machine().describe_context(), (offset << 1), mem_mask, offset - 0x20000);
+		return 0;
+	}
 }
 
 void cdi_state::dvc_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
-	LOGMASKED(LOG_DVC, "%s: dvc_w: %08x = %04x & %04x\n", machine().describe_context(), 0xe80000 + (offset << 1), data, mem_mask);
+	LOGMASKED(LOG_DVC, "%s: dvc_w: %08x = %04x & %04x\n", machine().describe_context(), (offset << 1), data, mem_mask);
 }
 
 /*************************

@@ -417,6 +417,7 @@ int mcd212_device::get_border_width()
 
 void storememory();
 extern int irq2_counter;
+int framecnt=0;
 
 template <int Path>
 void mcd212_device::process_ica()
@@ -430,7 +431,15 @@ void mcd212_device::process_ica()
 		/*for(int i =0; i < 256;i++)
 			printf("0x%x,\n",m_clut[i]);*/
 		storememory();
+		//exit(0);
 		irq2_counter=0;
+	}
+
+	framecnt++;
+
+	if (framecnt==50*22)
+	{
+	storememory();
 	}
 
 		
