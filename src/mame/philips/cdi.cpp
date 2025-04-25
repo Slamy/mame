@@ -405,6 +405,11 @@ uint16_t cdi_state::dvc_r(offs_t offset, uint16_t mem_mask)
 	else
 	{
 		LOGMASKED(LOG_DVC, "%s: dvc_r: %08x = 0000 & %04x   %04x\n", machine().describe_context(), (offset << 1), mem_mask, offset - 0x20000);
+		static int cnt=0;
+		cnt ++;
+
+		if (0x0004062==byte_offset && (cnt&1))
+			return 1<<11;
 		return 0;
 	}
 }
