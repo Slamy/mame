@@ -16,6 +16,7 @@ scc68070_base_device::scc68070_base_device(const machine_config &mconfig, const 
 	: m68000_musashi_device(mconfig, tag, owner, clock, type, 16,32, internal_map)
 {
 }
+extern int pcanalysis;
 
 void scc68070_base_device::device_start()
 {
@@ -24,8 +25,18 @@ void scc68070_base_device::device_start()
 
 	m_readimm16 = [this](offs_t address) -> u16  { return m_oprogram16.read_word(translate_addr(address)); };
 	m_read8   = [this](offs_t address) -> u8     { return m_program16.read_byte(translate_addr(address)); };
-	m_read16  = [this](offs_t address) -> u16    { return m_program16.read_word(translate_addr(address)); };
-	m_read32  = [this](offs_t address) -> u32    { return m_program16.read_dword(translate_addr(address)); };
+	m_read16  = [this](offs_t address) -> u16    { 
+
+		u16 result = m_program16.read_word(translate_addr(address));
+		if (pcanalysis>0)
+		printf("m_read16 %x %x\n",address,result);
+		return result;
+	
+	};
+	m_read32  = [this](offs_t address) -> u32    { u32 result =m_program16.read_dword(translate_addr(address)); 
+		if (pcanalysis>0)
+		printf("m_read32 %x %x\n",address,result);
+		return result;};
 	m_write8  = [this](offs_t address, u8 data)
 		{
 			address = translate_addr(address);

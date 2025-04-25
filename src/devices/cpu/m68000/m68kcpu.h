@@ -1129,10 +1129,10 @@ const char* systemCallNameToString(const SystemCallType call);
 
 inline void m68ki_jump_vector(u32 vector)
 {
-	u32 oldpc=m_pc;
+	//u32 oldpc=m_pc;
 	m_pc = (vector<<2) + m_vbr;
 	m_pc = m68ki_read_data_32(m_pc);
-
+#if 0
 	printf("m68ki_jump_vector %x -> %x %x\n",oldpc,vector,m_pc);
 
 	if (vector == 0x20){
@@ -1140,6 +1140,7 @@ inline void m68ki_jump_vector(u32 vector)
 		pc_after_syscall = oldpc +2;
 		printf("Syscall %x %x %s\n",oldpc,syscall,systemCallNameToString(static_cast<SystemCallType>(syscall)));
 	}
+#endif
 
 	//pcanalysis=80;
 

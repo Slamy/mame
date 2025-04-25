@@ -1005,6 +1005,7 @@ void m68000_musashi_device::execute_run()
 			/* Call external hook to peek at CPU */
 			debugger_instruction_hook(m_pc);
 
+			#if 0
 			if (m_pc == pc_after_syscall){
 				printf("Return from Syscall %d\n",m_c_flag);
 
@@ -1016,8 +1017,9 @@ void m68000_musashi_device::execute_run()
 			
 			if (m_pc==0xe400a6){
 				printf("EKEL!\n");
-				pcanalysis=1000;
+				//pcanalysis=1000;
 			}
+			#endif
 			
 			if (pcanalysis-- > 0)
 			{
