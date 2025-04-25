@@ -1008,20 +1008,29 @@ void m68000_musashi_device::execute_run()
 			if (m_pc == pc_after_syscall){
 				printf("Return from Syscall %d\n",m_c_flag);
 
-				printf("%x",m_pc);
+				printf("%08x",m_pc);
 				for (int i=0;i <16;i++)
-					printf(" %x",m_dar[i]);
+					printf(" %08x", m_dar[i]);
 				printf("\n");
+			}
+			
+			if (m_pc==0xe400a6){
+				printf("EKEL!\n");
+				pcanalysis=1000;
 			}
 			
 			if (pcanalysis-- > 0)
 			{
-				printf("%x", m_pc);
+				printf("%08x ", m_pc);
 
 				for (int i = 0; i < 16; i++)
-					printf(" %x", m_dar[i]);
+				{
+					if (i==8)
+						printf("  ");
+					printf(" %08x", m_dar[i]);
+				}
 
-				printf("\n");
+				printf("   %d\n",m_c_flag);
 			}
 
 			try

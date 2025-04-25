@@ -27,7 +27,7 @@ TODO:
 #define LOG_UNKNOWNS    (1U << 5)
 #define LOG_ALL         (LOG_IRQS | LOG_COMMANDS | LOG_READS | LOG_WRITES | LOG_UNKNOWNS)
 
-#define VERBOSE         (0)
+#define VERBOSE         (LOG_ALL)
 #include "logmacro.h"
 
 // device type definition
